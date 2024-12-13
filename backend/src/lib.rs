@@ -8,6 +8,7 @@ use axum::{routing::get, Router};
 use common::User;
 use oidc::Client;
 use sqlx::postgres::{PgPool, PgPoolOptions};
+use tap::Pipe;
 use time::Duration;
 use tokio::net::TcpListener;
 use tower_sessions::cookie::SameSite;
@@ -22,10 +23,17 @@ mod phone_calls;
 
 use errors::{Response, Result};
 
+#[derive(Debug, Clone)]
+pub struct Authentication {
+    pub username: String,
+    pub password: String,
+}
+
 #[derive(FromRef, Clone)]
 pub struct AppState {
     db: PgPool,
     oidc_client: Arc<ArcSwap<Option<Client>>>,
+    authentication: Arc<Authentication>,
 }
 
 pub async fn main(http_listen: &str, database_url: &str) {
@@ -103,9 +111,16 @@ pub async fn get_router(pool: sqlx::PgPool) -> Router {
         });
     }
 
+    let authentication = {
+        let username = env::var("PHONE_USERNAME").expect("PHONE_USERNAME must be set");
+        let password = env::var("PHONE_PASSWORD").expect("PHONE_PASSWORD must be set");
+        Authentication { username, password }.pipe(Arc::new)
+    };
+
     let state = AppState {
         db: pool,
         oidc_client,
+        authentication,
     };
 
     Router::new()
@@ -131,9 +146,18 @@ pub fn get_test_router(pool: sqlx::PgPool) -> Router {
         groups: vec![],
     };
 
+    let authentication = {
+        Authentication {
+            username: "test".to_string(),
+            password: "test".to_string(),
+        }
+        .pipe(Arc::new)
+    };
+
     let state = AppState {
         db: pool,
         oidc_client: Arc::new(ArcSwap::new(Arc::new(None))),
+        authentication,
     };
 
     Router::new()

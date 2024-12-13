@@ -1,8 +1,17 @@
+use std::sync::Arc;
+
 use axum::extract::State;
 use axum::routing::post;
 use axum::{Json, Router};
+use axum_extra::{
+    headers::{authorization::Basic, Authorization},
+    TypedHeader,
+};
 use sqlx::postgres::PgPool;
 use tap::Pipe;
+
+use crate::errors::Error;
+use crate::Authentication;
 
 use super::contacts::Contact;
 use super::errors::{Response, Result};
@@ -16,12 +25,18 @@ pub fn router(state: AppState) -> Router<AppState> {
         .with_state(state)
 }
 
-#[axum::debug_handler]
+#[axum::debug_handler(state = AppState)]
 async fn post_handler(
+    State(authentication): State<Arc<Authentication>>,
     State(db): State<PgPool>,
+    TypedHeader(Authorization(creds)): TypedHeader<Authorization<Basic>>,
     Json(request): Json<IncomingPhoneCallRequest>,
 ) -> Result<IncomingPhoneCallResponse> {
     let time = chrono::Utc::now();
+
+    if creds.username() != authentication.username || creds.password() != authentication.password {
+        return Err(Error::NotAuthorized);
+    }
 
     let contact = sqlx::query_as!(
         Contact,
