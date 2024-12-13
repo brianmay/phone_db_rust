@@ -53,7 +53,7 @@ pub async fn main(http_listen: &str, database_url: &str) {
         .unwrap();
 }
 
-pub async fn get_router(pool: sqlx::Pool<sqlx::Postgres>) -> Router {
+pub async fn get_router(pool: sqlx::PgPool) -> Router {
     let session_store = PostgresStore::new(pool.clone());
 
     tokio::task::spawn(
@@ -118,6 +118,30 @@ pub async fn get_router(pool: sqlx::Pool<sqlx::Postgres>) -> Router {
             oidc::middleware::auth,
         ))
         .layer(session_layer)
+        .route("/api/healthcheck", get(health_check_handler))
+        .with_state(state)
+}
+
+pub fn get_test_router(pool: sqlx::PgPool) -> Router {
+    let user = User {
+        sub: "test".to_string(),
+        email: "test@example.org".to_string(),
+        name: "Test User".to_string(),
+        is_admin: false,
+        groups: vec![],
+    };
+
+    let state = AppState {
+        db: pool,
+        oidc_client: Arc::new(ArcSwap::new(Arc::new(None))),
+    };
+
+    Router::new()
+        .route("/", get(index_handler))
+        .nest("/api", incoming_calls::router(state.clone()))
+        .nest("/api/phone_calls", phone_calls::router(state.clone()))
+        .nest("/api/contacts", contacts::router(state.clone()))
+        .layer(Extension(Arc::new(user)))
         .route("/api/healthcheck", get(health_check_handler))
         .with_state(state)
 }

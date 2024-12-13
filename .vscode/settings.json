@@ -1,5 +1,8 @@
 {
     "cSpell.words": [
+        "axum",
+        "chrono",
+        "healthcheck",
         "sqlx"
     ]
 }

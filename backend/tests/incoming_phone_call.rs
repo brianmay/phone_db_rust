@@ -3,8 +3,8 @@ use common::{IncomingPhoneCallRequest, IncomingPhoneCallResponse, Response};
 use sqlx::PgPool;
 
 #[sqlx::test]
-async fn test(pool: PgPool) {
-    let app = backend::get_router(pool).await;
+async fn test(db: PgPool) {
+    let app = backend::get_test_router(db.clone());
 
     let server = TestServer::new(app).unwrap();
 
