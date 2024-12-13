@@ -10,3 +10,5 @@ members = [
     "common",
     "frontend",
 ]
+
+[dependencies]
