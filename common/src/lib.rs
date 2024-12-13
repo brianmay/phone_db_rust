@@ -3,6 +3,15 @@ use chrono::Utc;
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Deserialize, Serialize)]
+pub struct User {
+    pub sub: String,
+    pub name: String,
+    pub email: String,
+    pub is_admin: bool,
+    pub groups: Vec<String>,
+}
+
+#[derive(Debug, Deserialize, Serialize)]
 #[serde(tag = "status")]
 pub enum Response<T> {
     Success { data: T },

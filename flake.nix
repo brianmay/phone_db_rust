@@ -111,6 +111,7 @@
                 pkgs.cargo-watch
                 pkgs.sqlx-cli
                 pkgs.jq
+                pkgs.openssl
                 test_phone_call
               ];
               enterShell = ''

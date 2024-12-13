@@ -20,6 +20,18 @@ pub enum Error {
 
     #[error("{0} Not found: {1}")]
     NotFound(String, i64),
+
+    #[error("OIDC Error: {0}")]
+    Oidc(#[from] super::oidc::Error),
+
+    #[error("OIDC not initialized")]
+    OIDCNotInitialized,
+
+    #[error("Not authorized")]
+    NotAuthorized,
+
+    #[error("Session error: {0}")]
+    Session(#[from] tower_sessions_core::session::Error),
 }
 
 impl IntoResponse for Error {
@@ -37,6 +49,34 @@ impl IntoResponse for Error {
                     message: format!("{class} with id {id} not found"),
                 };
                 (StatusCode::NOT_FOUND, Json(response)).into_response()
+            }
+            Self::Oidc(error) => {
+                error!("OIDC error: {error}");
+                let response = MyResponse::<()>::Error {
+                    message: "internal error".to_string(),
+                };
+                (StatusCode::BAD_REQUEST, Json(response)).into_response()
+            }
+            Self::OIDCNotInitialized => {
+                error!("OIDC not initialized");
+                let response = MyResponse::<()>::Error {
+                    message: "internal error".to_string(),
+                };
+                (StatusCode::BAD_REQUEST, Json(response)).into_response()
+            }
+            Self::NotAuthorized => {
+                error!("Not authorized");
+                let response = MyResponse::<()>::Error {
+                    message: "Not authorized".to_string(),
+                };
+                (StatusCode::UNAUTHORIZED, Json(response)).into_response()
+            }
+            Self::Session(error) => {
+                error!("Session error: {error}");
+                let response = MyResponse::<()>::Error {
+                    message: "internal error".to_string(),
+                };
+                (StatusCode::BAD_REQUEST, Json(response)).into_response()
             }
         }
     }

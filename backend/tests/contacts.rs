@@ -5,7 +5,7 @@ use sqlx::PgPool;
 
 #[sqlx::test]
 async fn test_no_contacts(db: PgPool) {
-    let app = backend::get_router(db);
+    let app = backend::get_router(db).await;
 
     let server = TestServer::new(app).unwrap();
 
@@ -25,7 +25,7 @@ async fn test_no_contacts(db: PgPool) {
 
 #[sqlx::test]
 async fn test_one_contact(db: PgPool) {
-    let app = backend::get_router(db.clone());
+    let app = backend::get_router(db.clone()).await;
     let server = TestServer::new(app).unwrap();
     let time = chrono::Utc::now();
 
@@ -77,8 +77,8 @@ async fn test_one_contact(db: PgPool) {
 }
 
 #[sqlx::test]
-fn test_update_contact(db: PgPool) {
-    let app = backend::get_router(db.clone());
+async fn test_update_contact(db: PgPool) {
+    let app = backend::get_router(db.clone()).await;
     let server = TestServer::new(app).unwrap();
     let time = chrono::Utc::now();
 
