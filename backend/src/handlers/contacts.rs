@@ -1,44 +1,16 @@
 use axum::extract::State;
 use axum::routing::{get, post};
 use axum::{Json, Router};
-use chrono::{DateTime, Utc};
-use serde::{Deserialize, Serialize};
 use sqlx::postgres::PgPool;
 use tap::Pipe;
 
 use crate::errors;
 
-use super::errors::{Response, Result};
-use super::AppState;
+use crate::errors::{Response, Result};
+use crate::AppState;
 
-use common::{Action, ContactDetails, ContactUpdateRequest};
+use common::{ContactDetails, ContactUpdateRequest};
 
-#[derive(Debug, Deserialize, Serialize)]
-pub struct Contact {
-    pub id: i64,
-    pub phone_number: String,
-    pub name: Option<String>,
-    pub action: Action,
-    pub comments: Option<String>,
-    pub inserted_at: DateTime<Utc>,
-    pub updated_at: DateTime<Utc>,
-}
-
-impl Contact {
-    pub fn get_update_request(
-        self,
-        action: Action,
-        name: Option<String>,
-        comments: Option<String>,
-    ) -> ContactUpdateRequest {
-        ContactUpdateRequest {
-            id: self.id,
-            name,
-            action,
-            comments,
-        }
-    }
-}
 pub fn router(state: AppState) -> Router<AppState> {
     Router::new()
         .route("/", get(get_contacts))

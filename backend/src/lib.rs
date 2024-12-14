@@ -2,10 +2,10 @@ use std::env;
 use std::sync::Arc;
 
 use arc_swap::ArcSwap;
-use axum::extract::{FromRef, State};
+use axum::extract::FromRef;
 use axum::Extension;
 use axum::{routing::get, Router};
-use common::{Action, User};
+use common::User;
 use oidc::Client;
 use simple_ldap::pool as ldap_pool;
 use sqlx::postgres::{PgPool, PgPoolOptions};
@@ -16,14 +16,11 @@ use tower_sessions::cookie::SameSite;
 use tower_sessions::{ExpiredDeletion, Expiry, SessionManagerLayer};
 use tower_sessions_sqlx_store_chrono::PostgresStore;
 
-pub mod contacts;
 mod errors;
-mod incoming_calls;
+mod handlers;
 mod ldap;
 mod oidc;
-mod phone_calls;
-
-use errors::{Response, Result};
+pub mod types;
 
 #[derive(Debug, Clone)]
 pub struct Authentication {
@@ -161,15 +158,21 @@ pub async fn get_router(pool: sqlx::PgPool, ldap: Ldap) -> Router {
 
     Router::new()
         .route("/", get(index_handler))
-        .nest("/api/phone_calls", phone_calls::router(state.clone()))
-        .nest("/api/contacts", contacts::router(state.clone()))
+        .nest(
+            "/api/phone_calls",
+            handlers::phone_calls::router(state.clone()),
+        )
+        .nest("/api/contacts", handlers::contacts::router(state.clone()))
         .layer(axum::middleware::from_fn_with_state(
             state.clone(),
             oidc::middleware::auth,
         ))
         .layer(session_layer)
-        .nest("/api", incoming_calls::router(state.clone()))
-        .route("/api/healthcheck", get(health_check_handler))
+        .nest("/api", handlers::incoming_calls::router(state.clone()))
+        .route(
+            "/api/healthcheck",
+            get(handlers::health_check::health_check_handler),
+        )
         .with_state(state)
 }
 
@@ -201,37 +204,18 @@ pub async fn get_test_router(pool: sqlx::PgPool) -> Router {
 
     Router::new()
         .route("/", get(index_handler))
-        .nest("/api/phone_calls", phone_calls::router(state.clone()))
-        .nest("/api/contacts", contacts::router(state.clone()))
+        .nest(
+            "/api/phone_calls",
+            handlers::phone_calls::router(state.clone()),
+        )
+        .nest("/api/contacts", handlers::contacts::router(state.clone()))
         .layer(Extension(Arc::new(user)))
-        .nest("/api", incoming_calls::router(state.clone()))
-        .route("/api/healthcheck", get(health_check_handler))
+        .nest("/api", handlers::incoming_calls::router(state.clone()))
+        .route(
+            "/api/healthcheck",
+            get(handlers::health_check::health_check_handler),
+        )
         .with_state(state)
-}
-
-#[axum::debug_handler(state = AppState)]
-pub async fn health_check_handler(
-    State(db): State<PgPool>,
-    State(ldap): State<Ldap>,
-) -> Result<()> {
-    sqlx::query!("SELECT 1 as result").fetch_one(&db).await?;
-    let response = Response::new(());
-    let now = chrono::Utc::now();
-
-    let contact = contacts::Contact {
-        id: 23,
-        name: Some("Me".to_string()),
-        comments: Some("I don't know this person".to_string()),
-        phone_number: "1".to_string(),
-        action: Action::Allow,
-        inserted_at: now,
-        updated_at: now,
-    };
-
-    let contact = ldap::get_contact(&contact, &ldap).await?;
-    println!("{contact:#?}");
-
-    Ok(response)
 }
 
 #[axum::debug_handler]

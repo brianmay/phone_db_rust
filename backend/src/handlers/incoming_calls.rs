@@ -11,13 +11,12 @@ use sqlx::postgres::PgPool;
 use tap::Pipe;
 
 use crate::errors::Error;
+use crate::errors::{Response, Result};
+use crate::ldap;
+use crate::types::Contact;
+use crate::AppState;
 use crate::Authentication;
-
-use super::contacts::Contact;
-use super::errors::{Response, Result};
-use super::ldap;
-use super::AppState;
-use super::Ldap;
+use crate::Ldap;
 
 use common::{Action, IncomingPhoneCallRequest, IncomingPhoneCallResponse};
 

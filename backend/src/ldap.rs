@@ -6,8 +6,8 @@ use simple_ldap::ldap3::{Mod, ResultEntry, Scope, SearchEntry};
 use simple_ldap::LdapClient;
 use tap::Pipe;
 
-use crate::contacts::Contact;
 use crate::errors::Error;
+use crate::types::Contact;
 use crate::Ldap;
 
 use common::Action;

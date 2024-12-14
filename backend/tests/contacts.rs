@@ -1,5 +1,5 @@
 use axum_test::TestServer;
-use backend::contacts::Contact;
+use backend::types::Contact;
 use common::{Action, ContactDetails, Response};
 use sqlx::PgPool;
 
