@@ -104,3 +104,28 @@ pub struct IncomingPhoneCallResponse {
     pub name: Option<String>,
     pub action: Action,
 }
+
+#[derive(Debug, Deserialize, Serialize)]
+pub struct Page<T> {
+    pub data: Vec<T>,
+    pub total: u32,
+    pub page: u32,
+    pub per_page: u32,
+}
+
+impl<T> Page<T> {
+    pub fn new(data: Vec<T>, total: u32, page: u32, per_page: u32) -> Self {
+        Page {
+            data,
+            total,
+            page,
+            per_page,
+        }
+    }
+}
+
+#[derive(Debug, Deserialize, Serialize)]
+pub struct PageRequest {
+    pub page: u32,
+    pub per_page: u32,
+}

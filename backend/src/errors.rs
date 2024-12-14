@@ -41,68 +41,79 @@ pub enum Error {
 
     #[error("Too many LDAP results")]
     LdapTooManyResults,
+
+    #[error("Integer error: {0}")]
+    Int(#[from] std::num::TryFromIntError),
 }
 
 impl IntoResponse for Error {
     fn into_response(self) -> AxumResponse {
-        match self {
-            Self::Sqlx(error) => {
-                error!("database error: {error}");
+        match &self {
+            error @ Self::Sqlx(..) => {
+                error!("{error}");
                 let response = MyResponse::<()>::Error {
                     message: "internal error".to_string(),
                 };
                 (StatusCode::INTERNAL_SERVER_ERROR, Json(response)).into_response()
             }
-            Self::NotFound(class, id) => {
+            error @ Self::NotFound(class, id) => {
+                error!("{error}");
                 let response = MyResponse::<()>::Error {
                     message: format!("{class} with id {id} not found"),
                 };
                 (StatusCode::NOT_FOUND, Json(response)).into_response()
             }
-            Self::Oidc(error) => {
-                error!("OIDC error: {error}");
+            error @ Self::Oidc(..) => {
+                error!("{error}");
                 let response = MyResponse::<()>::Error {
                     message: "internal error".to_string(),
                 };
                 (StatusCode::INTERNAL_SERVER_ERROR, Json(response)).into_response()
             }
-            Self::OIDCNotInitialized => {
-                error!("OIDC not initialized");
+            error @ Self::OIDCNotInitialized => {
+                error!("{error}");
                 let response = MyResponse::<()>::Error {
                     message: "internal error".to_string(),
                 };
                 (StatusCode::INTERNAL_SERVER_ERROR, Json(response)).into_response()
             }
-            Self::NotAuthorized => {
-                error!("Not authorized");
+            error @ Self::NotAuthorized => {
+                error!("{error}");
                 let response = MyResponse::<()>::Error {
                     message: "Not authorized".to_string(),
                 };
                 (StatusCode::UNAUTHORIZED, Json(response)).into_response()
             }
-            Self::Session(error) => {
-                error!("Session error: {error}");
+            error @ Self::Session(..) => {
+                error!("{error}");
                 let response = MyResponse::<()>::Error {
                     message: "internal error".to_string(),
                 };
                 (StatusCode::INTERNAL_SERVER_ERROR, Json(response)).into_response()
             }
-            Self::Ldap(error) => {
-                error!("LDAP error: {error}");
+            error @ Self::Ldap(..) => {
+                error!("{error}");
                 let response = MyResponse::<()>::Error {
                     message: "internal error".to_string(),
                 };
                 (StatusCode::INTERNAL_SERVER_ERROR, Json(response)).into_response()
             }
-            Self::Ldap3(error) => {
-                error!("LDAP3 error: {error}");
+            error @ Self::Ldap3(..) => {
+                error!("{error}");
+                let response: MyResponse<()> = MyResponse::<()>::Error {
+                    message: "internal error".to_string(),
+                };
+                (StatusCode::INTERNAL_SERVER_ERROR, Json(response)).into_response()
+            }
+            error @ Self::LdapTooManyResults => {
+                error!("{error}");
                 let response = MyResponse::<()>::Error {
                     message: "internal error".to_string(),
                 };
                 (StatusCode::INTERNAL_SERVER_ERROR, Json(response)).into_response()
             }
-            Self::LdapTooManyResults => {
-                error!("LDAP too many results");
+            error @ Self::Int(..) => {
+                error!("{error}");
                 let response = MyResponse::<()>::Error {
                     message: "internal error".to_string(),
                 };
