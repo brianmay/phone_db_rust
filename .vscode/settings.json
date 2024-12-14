@@ -2,7 +2,10 @@
     "cSpell.words": [
         "axum",
         "chrono",
+        "conn",
         "healthcheck",
+        "Itertools",
+        "ldap",
         "sqlx"
     ]
 }

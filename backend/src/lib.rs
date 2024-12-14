@@ -5,8 +5,9 @@ use arc_swap::ArcSwap;
 use axum::extract::{FromRef, State};
 use axum::Extension;
 use axum::{routing::get, Router};
-use common::User;
+use common::{Action, User};
 use oidc::Client;
+use simple_ldap::pool as ldap_pool;
 use sqlx::postgres::{PgPool, PgPoolOptions};
 use tap::Pipe;
 use time::Duration;
@@ -18,6 +19,7 @@ use tower_sessions_sqlx_store_chrono::PostgresStore;
 pub mod contacts;
 mod errors;
 mod incoming_calls;
+mod ldap;
 mod oidc;
 mod phone_calls;
 
@@ -34,6 +36,13 @@ pub struct AppState {
     db: PgPool,
     oidc_client: Arc<ArcSwap<Option<Client>>>,
     authentication: Arc<Authentication>,
+    ldap: Ldap,
+}
+
+#[derive(Clone)]
+pub struct Ldap {
+    pool: Arc<ldap_pool::LdapPool>,
+    base_dn: Arc<String>,
 }
 
 pub async fn main(http_listen: &str, database_url: &str) {
@@ -52,7 +61,9 @@ pub async fn main(http_listen: &str, database_url: &str) {
         }
     };
 
-    let app = get_router(pool).await;
+    let ldap = connect_ldap().await;
+
+    let app = get_router(pool, ldap).await;
 
     println!("🚀 Server running at http://{}", http_listen);
     let listener = TcpListener::bind(&http_listen).await.unwrap();
@@ -61,7 +72,31 @@ pub async fn main(http_listen: &str, database_url: &str) {
         .unwrap();
 }
 
-pub async fn get_router(pool: sqlx::PgPool) -> Router {
+async fn connect_ldap() -> Ldap {
+    let ldap_server = env::var("LDAP_SERVER").expect("LDAP_SERVER must be set");
+    let ldap_port = env::var("LDAP_PORT").expect("LDAP_PORT must be set");
+    let ldap_base_dn = env::var("LDAP_BASE_DN").expect("LDAP_BASE_DN must be set");
+    let ldap_username = env::var("LDAP_USERNAME").expect("LDAP_USERNAME must be set");
+    let ldap_password = env::var("LDAP_PASSWORD").expect("LDAP_PASSWORD must be set");
+    let url = format!("ldap://{}:{}", ldap_server, ldap_port);
+
+    let ldap_config = ldap_pool::LdapConfig {
+        bind_dn: ldap_username,
+        bind_pw: ldap_password,
+        ldap_url: url,
+        pool_size: 1,
+        dn_attribute: Some("telephoneNumber".to_string()),
+    };
+
+    let pool = ldap_pool::build_connection_pool(&ldap_config).await;
+
+    Ldap {
+        pool: Arc::new(pool),
+        base_dn: Arc::new(ldap_base_dn),
+    }
+}
+
+pub async fn get_router(pool: sqlx::PgPool, ldap: Ldap) -> Router {
     let session_store = PostgresStore::new(pool.clone());
 
     tokio::task::spawn(
@@ -121,11 +156,11 @@ pub async fn get_router(pool: sqlx::PgPool) -> Router {
         db: pool,
         oidc_client,
         authentication,
+        ldap,
     };
 
     Router::new()
         .route("/", get(index_handler))
-        .nest("/api", incoming_calls::router(state.clone()))
         .nest("/api/phone_calls", phone_calls::router(state.clone()))
         .nest("/api/contacts", contacts::router(state.clone()))
         .layer(axum::middleware::from_fn_with_state(
@@ -133,11 +168,14 @@ pub async fn get_router(pool: sqlx::PgPool) -> Router {
             oidc::middleware::auth,
         ))
         .layer(session_layer)
+        .nest("/api", incoming_calls::router(state.clone()))
         .route("/api/healthcheck", get(health_check_handler))
         .with_state(state)
 }
 
-pub fn get_test_router(pool: sqlx::PgPool) -> Router {
+pub async fn get_test_router(pool: sqlx::PgPool) -> Router {
+    let ldap = connect_ldap().await;
+
     let user = User {
         sub: "test".to_string(),
         email: "test@example.org".to_string(),
@@ -158,22 +196,41 @@ pub fn get_test_router(pool: sqlx::PgPool) -> Router {
         db: pool,
         oidc_client: Arc::new(ArcSwap::new(Arc::new(None))),
         authentication,
+        ldap,
     };
 
     Router::new()
         .route("/", get(index_handler))
-        .nest("/api", incoming_calls::router(state.clone()))
         .nest("/api/phone_calls", phone_calls::router(state.clone()))
         .nest("/api/contacts", contacts::router(state.clone()))
         .layer(Extension(Arc::new(user)))
+        .nest("/api", incoming_calls::router(state.clone()))
         .route("/api/healthcheck", get(health_check_handler))
         .with_state(state)
 }
 
-#[axum::debug_handler]
-pub async fn health_check_handler(State(db): State<PgPool>) -> Result<()> {
+#[axum::debug_handler(state = AppState)]
+pub async fn health_check_handler(
+    State(db): State<PgPool>,
+    State(ldap): State<Ldap>,
+) -> Result<()> {
     sqlx::query!("SELECT 1 as result").fetch_one(&db).await?;
     let response = Response::new(());
+    let now = chrono::Utc::now();
+
+    let contact = contacts::Contact {
+        id: 23,
+        name: Some("Me".to_string()),
+        comments: Some("I don't know this person".to_string()),
+        phone_number: "1".to_string(),
+        action: Action::Allow,
+        inserted_at: now,
+        updated_at: now,
+    };
+
+    let contact = ldap::get_contact(&contact, &ldap).await?;
+    println!("{contact:#?}");
+
     Ok(response)
 }
 

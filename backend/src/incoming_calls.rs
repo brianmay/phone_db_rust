@@ -15,7 +15,9 @@ use crate::Authentication;
 
 use super::contacts::Contact;
 use super::errors::{Response, Result};
+use super::ldap;
 use super::AppState;
+use super::Ldap;
 
 use common::{Action, IncomingPhoneCallRequest, IncomingPhoneCallResponse};
 
@@ -29,10 +31,11 @@ pub fn router(state: AppState) -> Router<AppState> {
 async fn post_handler(
     State(authentication): State<Arc<Authentication>>,
     State(db): State<PgPool>,
+    State(ldap): State<Ldap>,
     TypedHeader(Authorization(creds)): TypedHeader<Authorization<Basic>>,
     Json(request): Json<IncomingPhoneCallRequest>,
 ) -> Result<IncomingPhoneCallResponse> {
-    let time = chrono::Utc::now();
+    let now = chrono::Utc::now();
 
     if creds.username() != authentication.username || creds.password() != authentication.password {
         return Err(Error::NotAuthorized);
@@ -62,7 +65,7 @@ async fn post_handler(
                 "#,
                 request.phone_number,
                 Action::Allow.as_str(),
-                time
+                now
             )
             .fetch_one(&db)
             .await?
@@ -78,10 +81,12 @@ async fn post_handler(
         contact.action.as_str(),
         contact.id,
         request.destination_number,
-        time
+        now
     )
     .fetch_one(&db)
     .await?;
+
+    ldap::update_contact(&contact, &ldap).await?;
 
     IncomingPhoneCallResponse {
         name: contact.name,

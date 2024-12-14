@@ -96,8 +96,91 @@
         port = 4000;
         postgres_port = 8100;
 
+        ldap_port = 6102;
+        ldap_dir = ".devenv/state/ldap";
+        ldap_url = "ldap://localhost:${toString ldap_port}/";
+
+        dn_suffix = "dc=python-ldap,dc=org";
+        root_dn = "cn=root,${dn_suffix}";
+        root_password = "your_secure_password_here";
+
+        slapd_config = pkgs.writeTextFile {
+          name = "slapd.conf";
+          text = ''
+            include ${pkgs.openldap}/etc/schema/core.schema
+            include ${pkgs.openldap}/etc/schema/cosine.schema
+            include ${pkgs.openldap}/etc/schema/inetorgperson.schema
+
+            allow bind_v2
+
+            # Database
+            moduleload back_mdb
+            moduleload ppolicy
+
+            database mdb
+            directory ${ldap_dir}
+
+            suffix ${dn_suffix}
+            overlay ppolicy
+            ppolicy_default cn=default,${dn_suffix}
+
+            access to dn.sub=${dn_suffix} attrs=userPassword
+               by anonymous auth
+
+            access to dn.sub=${dn_suffix}
+               by dn.exact=${root_dn} write
+          '';
+        };
+
+        admin_ldif = pkgs.writeTextFile {
+          name = "admin.ldif";
+          text = ''
+            dn: ${dn_suffix}
+            o: Test Org
+            objectClass: dcObject
+            objectClass: organization
+
+            dn: ${root_dn}
+            cn: ${root_dn}
+            objectClass: simpleSecurityObject
+            objectClass: organizationalRole
+            userPassword: ${root_password}
+
+            dn: cn=default,${dn_suffix}
+            objectClass: top
+            objectClass: device
+            objectClass: pwdPolicy
+            pwdAttribute: userPassword
+            pwdLockout: TRUE
+
+            dn: ou=People,${dn_suffix}
+            objectClass: top
+            objectClass: OrganizationalUnit
+            ou: People
+
+            dn: ou=Groups,${dn_suffix}
+            objectClass: top
+            objectClass: OrganizationalUnit
+          '';
+        };
+
         phone_username = "phone";
         phone_password = "password";
+
+        pd_ldapsearch = pkgs.writeShellScriptBin "pd_ldapsearch" ''
+          exec ${pkgs.openldap}/bin/ldapsearch -H "${ldap_url}" -D "${root_dn}" -b "${dn_suffix}" -w your_secure_password_here
+        '';
+
+        start_ldap = pkgs.writeShellScriptBin "start_ldap" ''
+          set -e
+          set -x
+          if ! test -d "${ldap_dir}"; then
+            mkdir "${ldap_dir}"
+            cat "${admin_ldif}"
+            "${pkgs.openldap}/bin/slapadd" -n 1 -f "${slapd_config}" -l "${admin_ldif}"
+          fi
+          "${pkgs.openldap}/libexec/slapd" -f "${slapd_config}" -h "${ldap_url}"  -d 1
+        '';
 
         test_phone_call = pkgs.writeShellScriptBin "test_phone_call" ''
           curl --json '{"phone_number":"1", "destination_number":"2"}' --user "${phone_username}:${phone_password}" "http://localhost:${toString port}/api/incoming_call/"
@@ -117,10 +200,17 @@
                 pkgs.jq
                 pkgs.openssl
                 test_phone_call
+                pd_ldapsearch
               ];
               enterShell = ''
                 export HTTP_LISTEN="localhost:${toString port}"
                 export DATABASE_URL="postgresql://phone_db:your_secure_password_here@localhost:${toString postgres_port}/phone_db"
+
+                export LDAP_SERVER="localhost"
+                export LDAP_PORT="${toString ldap_port}"
+                export LDAP_BASE_DN="${dn_suffix}"
+                export LDAP_USERNAME="${root_dn}"
+                export LDAP_PASSWORD="${root_password}"
 
                 export PHONE_USERNAME="${phone_username}"
                 export PHONE_PASSWORD="${phone_password}"
@@ -138,6 +228,19 @@
                   GRANT ALL ON SCHEMA public TO phone_db;
                   ALTER USER phone_db WITH SUPERUSER;
                 '';
+              };
+              processes.slapd = {
+                exec = "${start_ldap}/bin/start_ldap";
+                process-compose = {
+                  readiness_probe = {
+                    exec.command = "${pd_ldapsearch}/bin/pd_ldapsearch";
+                    initial_delay_seconds = 2;
+                    period_seconds = 10;
+                    timeout_seconds = 1;
+                    success_threshold = 1;
+                    failure_threshold = 3;
+                  };
+                };
               };
             }
           ];

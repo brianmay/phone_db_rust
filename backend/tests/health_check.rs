@@ -4,7 +4,7 @@ use sqlx::PgPool;
 
 #[sqlx::test]
 async fn test(db: PgPool) {
-    let app = backend::get_test_router(db);
+    let app = backend::get_test_router(db).await;
 
     let server = TestServer::new(app).unwrap();
 
