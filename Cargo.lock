@@ -258,8 +258,10 @@ dependencies = [
  "openid",
  "serde",
  "serde_json",
+ "serde_qs",
  "simple-ldap",
  "sqlx",
+ "sqlx-conditional-queries",
  "tap",
  "thiserror 2.0.6",
  "time 0.3.37",
@@ -2954,6 +2956,19 @@ dependencies = [
 ]
 
 [[package]]
+name = "serde_qs"
+version = "0.13.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "cd34f36fe4c5ba9654417139a9b3a20d2e1de6012ee678ad14d240c22c78d8d6"
+dependencies = [
+ "axum",
+ "futures 0.3.31",
+ "percent-encoding 2.3.1",
+ "serde",
+ "thiserror 1.0.69",
+]
+
+[[package]]
 name = "serde_urlencoded"
 version = "0.5.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -3133,6 +3148,40 @@ dependencies = [
  "sqlx-mysql",
  "sqlx-postgres",
  "sqlx-sqlite",
+]
+
+[[package]]
+name = "sqlx-conditional-queries"
+version = "0.2.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "74ead97b458af9c78be51686ed8f8cd491ef2c21e002d1c730b97f08361a11f2"
+dependencies = [
+ "futures-core",
+ "sqlx-conditional-queries-macros",
+]
+
+[[package]]
+name = "sqlx-conditional-queries-core"
+version = "0.2.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "c1a833b4365f252f0c69990d781552c9776b7732fe182dbf2b008b1ce38e4451"
+dependencies = [
+ "itertools",
+ "proc-macro2 1.0.92",
+ "quote 1.0.37",
+ "syn 2.0.90",
+ "thiserror 1.0.69",
+]
+
+[[package]]
+name = "sqlx-conditional-queries-macros"
+version = "0.2.1"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "370db4356097186a5084cb3aabe9d1c598af6ca21f813e6a68e3d4dfe9a231f9"
+dependencies = [
+ "proc-macro-error",
+ "proc-macro2 1.0.92",
+ "sqlx-conditional-queries-core",
 ]
 
 [[package]]

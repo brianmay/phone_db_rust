@@ -1,7 +1,9 @@
 use axum::extract::State;
 use axum::routing::{get, post};
 use axum::{Json, Router};
+use serde_qs::axum::QsQuery;
 use sqlx::postgres::PgPool;
+use sqlx_conditional_queries::conditional_query_as;
 use tap::Pipe;
 
 use crate::errors;
@@ -9,7 +11,7 @@ use crate::errors;
 use crate::errors::{Response, Result};
 use crate::AppState;
 
-use common::{ContactDetails, ContactUpdateRequest};
+use common::{ContactDetails, ContactKey, ContactUpdateRequest, PageRequest};
 
 pub fn router(state: AppState) -> Router<AppState> {
     Router::new()
@@ -19,13 +21,23 @@ pub fn router(state: AppState) -> Router<AppState> {
 }
 
 #[axum::debug_handler]
-async fn get_contacts(State(db): State<PgPool>) -> Result<Vec<ContactDetails>> {
-    sqlx::query_as!(
+async fn get_contacts(
+    State(db): State<PgPool>,
+    QsQuery(request): QsQuery<PageRequest<ContactKey>>,
+) -> Result<Vec<ContactDetails>> {
+    conditional_query_as!(
         ContactDetails,
         r#"
         SELECT *, (SELECT COUNT(*) FROM phone_calls WHERE contact_id = contacts.id) as number_calls
         FROM contacts
-        "#
+        {#where_clause}
+        ORDER BY phone_number, id
+        LIMIT 10
+        "#,
+        #where_clause = match request.after_key {
+            Some(ContactKey{phone_number, id}) => "WHERE (phone_number, id) > ({phone_number},{id})",
+            None => "",
+        }
     )
     .fetch_all(&db)
     .await?

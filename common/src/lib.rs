@@ -58,6 +58,21 @@ pub struct PhoneCall {
     pub updated_at: DateTime<Utc>,
 }
 
+impl PhoneCall {
+    pub fn get_key(&self) -> PhoneCallKey {
+        PhoneCallKey {
+            inserted_at: self.inserted_at,
+            id: self.id,
+        }
+    }
+}
+
+#[derive(Debug, Deserialize, Serialize)]
+pub struct PhoneCallKey {
+    pub inserted_at: DateTime<Utc>,
+    pub id: i64,
+}
+
 #[derive(Debug, Deserialize, Serialize)]
 pub struct ContactDetails {
     pub id: i64,
@@ -84,7 +99,21 @@ impl ContactDetails {
             comments,
         }
     }
+
+    pub fn get_key(&self) -> ContactKey {
+        ContactKey {
+            phone_number: self.phone_number.clone(),
+            id: self.id,
+        }
+    }
 }
+
+#[derive(Debug, Deserialize, Serialize)]
+pub struct ContactKey {
+    pub phone_number: String,
+    pub id: i64,
+}
+
 #[derive(Debug, Deserialize, Serialize)]
 pub struct ContactUpdateRequest {
     pub id: i64,
@@ -103,4 +132,9 @@ pub struct IncomingPhoneCallRequest {
 pub struct IncomingPhoneCallResponse {
     pub name: Option<String>,
     pub action: Action,
+}
+
+#[derive(Debug, Deserialize, Serialize)]
+pub struct PageRequest<T> {
+    pub after_key: Option<T>,
 }

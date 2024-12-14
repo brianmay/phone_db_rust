@@ -163,10 +163,10 @@ pub async fn get_router(pool: sqlx::PgPool, ldap: Ldap) -> Router {
             handlers::phone_calls::router(state.clone()),
         )
         .nest("/api/contacts", handlers::contacts::router(state.clone()))
-        .layer(axum::middleware::from_fn_with_state(
-            state.clone(),
-            oidc::middleware::auth,
-        ))
+        // .layer(axum::middleware::from_fn_with_state(
+        //     state.clone(),
+        //     oidc::middleware::auth,
+        // ))
         .layer(session_layer)
         .nest("/api", handlers::incoming_calls::router(state.clone()))
         .route(
