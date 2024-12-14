@@ -1,4 +1,4 @@
-use axum::extract::{Query, State};
+use axum::extract::State;
 use axum::routing::{get, post};
 use axum::{Json, Router};
 use sqlx::postgres::PgPool;
@@ -9,7 +9,7 @@ use crate::errors;
 use crate::errors::{Response, Result};
 use crate::AppState;
 
-use common::{ContactDetails, ContactUpdateRequest, Page, PageRequest};
+use common::{ContactDetails, ContactUpdateRequest};
 
 pub fn router(state: AppState) -> Router<AppState> {
     Router::new()
@@ -19,42 +19,16 @@ pub fn router(state: AppState) -> Router<AppState> {
 }
 
 #[axum::debug_handler]
-async fn get_contacts(
-    State(db): State<PgPool>,
-    Query(page): Query<PageRequest>,
-) -> Result<Page<ContactDetails>> {
-    let offset: i64 = (page.per_page * page.page) as i64;
-    let limit = page.per_page as i64;
-
-    let count = sqlx::query_scalar!(
-        r#"
-        SELECT COUNT(*) FROM contacts
-        "#
-    )
-    .fetch_one(&db)
-    .await?
-    .unwrap_or_default()
-    .pipe(u32::try_from)?;
-
-    let rows = sqlx::query_as!(
+async fn get_contacts(State(db): State<PgPool>) -> Result<Vec<ContactDetails>> {
+    sqlx::query_as!(
         ContactDetails,
         r#"
         SELECT *, (SELECT COUNT(*) FROM phone_calls WHERE contact_id = contacts.id) as number_calls
         FROM contacts
-        OFFSET $1 LIMIT $2
-        "#,
-        offset,
-        limit,
+        "#
     )
     .fetch_all(&db)
-    .await?;
-
-    Page::new(
-        rows,
-        count.div_ceil(page.per_page),
-        page.page,
-        page.per_page,
-    )
+    .await?
     .pipe(Response::new)
     .pipe(Ok)
 }

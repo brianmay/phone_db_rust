@@ -1,6 +1,6 @@
 use axum_test::TestServer;
 use backend::types::Contact;
-use common::{Action, ContactDetails, Page, Response};
+use common::{Action, ContactDetails, Response};
 use sqlx::PgPool;
 
 #[sqlx::test]
@@ -10,24 +10,17 @@ async fn test_no_contacts(db: PgPool) {
     let server = TestServer::new(app).unwrap();
 
     // Get the request.
-    let response = server
-        .get("/api/contacts")
-        .add_query_param("page", 0)
-        .add_query_param("per_page", 10)
-        .await;
+    let response = server.get("/api/contacts").await;
 
     // Assertions.
     response.assert_status_ok();
-    let response = response.json::<Response<Page<Contact>>>();
+    let response = response.json::<Response<Vec<Contact>>>();
 
     let Response::Success { data: response } = response else {
         panic!("Expected a success response, got: {:?}", response);
     };
 
-    assert_eq!(response.page, 0);
-    assert_eq!(response.total, 0);
-    assert_eq!(response.per_page, 10);
-    assert_eq!(response.data.len(), 0);
+    assert_eq!(response.len(), 0);
 }
 
 #[sqlx::test]
@@ -67,27 +60,20 @@ async fn test_one_contact(db: PgPool) {
     .unwrap();
 
     // Get the request.
-    let response = server
-        .get("/api/contacts")
-        .add_query_param("page", 0)
-        .add_query_param("per_page", 10)
-        .await;
+    let response = server.get("/api/contacts").await;
 
     // Assertions.
     response.assert_status_ok();
-    let response = response.json::<Response<Page<ContactDetails>>>();
+    let response = response.json::<Response<Vec<ContactDetails>>>();
 
     let Response::Success { data: response } = response else {
         panic!("Expected a success response, got: {:?}", response);
     };
 
-    assert_eq!(response.page, 0);
-    assert_eq!(response.total, 1);
-    assert_eq!(response.per_page, 10);
-    assert_eq!(response.data.len(), 1);
-    assert_eq!(response.data[0].phone_number, "0412345678");
-    assert_eq!(response.data[0].action, Action::Allow);
-    assert_eq!(response.data[0].number_calls, Some(1));
+    assert_eq!(response.len(), 1);
+    assert_eq!(response[0].phone_number, "0412345678");
+    assert_eq!(response[0].action, Action::Allow);
+    assert_eq!(response[0].number_calls, Some(1));
 }
 
 #[sqlx::test]
