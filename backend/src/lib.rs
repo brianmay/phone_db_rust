@@ -1,11 +1,13 @@
 use std::env;
+use std::path::PathBuf;
 use std::sync::Arc;
 
 use arc_swap::ArcSwap;
+use axum::extract::ws::WebSocketUpgrade;
 use axum::extract::FromRef;
 use axum::Extension;
 use axum::{routing::get, Router};
-use common::User;
+use handlers::assets::Manifest;
 use oidc::Client;
 use simple_ldap::pool as ldap_pool;
 use sqlx::postgres::{PgPool, PgPoolOptions};
@@ -22,6 +24,8 @@ mod ldap;
 mod oidc;
 pub mod types;
 
+use common::User;
+
 #[derive(Debug, Clone)]
 pub struct Authentication {
     pub username: String,
@@ -34,6 +38,8 @@ pub struct AppState {
     oidc_client: Arc<ArcSwap<Option<Client>>>,
     authentication: Arc<Authentication>,
     ldap: Ldap,
+    static_path: Arc<PathBuf>,
+    manifest: Arc<Manifest>,
 }
 
 #[derive(Clone)]
@@ -112,6 +118,13 @@ pub async fn get_router(pool: sqlx::PgPool, ldap: Ldap) -> Router {
     let client_id = env::var("OIDC_CLIENT_ID").expect("OIDC_CLIENT_ID must be set");
     let client_secret = env::var("OIDC_CLIENT_SECRET").expect("OIDC_CLIENT_SECRET must be set");
     let auth_scope = env::var("OIDC_AUTH_SCOPE").expect("OIDC_AUTH_SCOPE must be set");
+    let static_path = env::var("STATIC_PATH")
+        .expect("STATIC_PATH must be set")
+        .pipe(PathBuf::from);
+
+    let manifest = Manifest::load(&static_path)
+        .await
+        .expect("failed to load manifest");
 
     let oidc_config = oidc::Config {
         issuer,
@@ -154,19 +167,22 @@ pub async fn get_router(pool: sqlx::PgPool, ldap: Ldap) -> Router {
         oidc_client,
         authentication,
         ldap,
+        static_path: Arc::new(static_path),
+        manifest: Arc::new(manifest),
     };
 
     Router::new()
-        .route("/", get(index_handler))
+        // .route("/", get(index_handler))
         .nest(
             "/api/phone_calls",
             handlers::phone_calls::router(state.clone()),
         )
         .nest("/api/contacts", handlers::contacts::router(state.clone()))
-        // .layer(axum::middleware::from_fn_with_state(
-        //     state.clone(),
-        //     oidc::middleware::auth,
-        // ))
+        .fallback(handlers::assets::fallback_handler)
+        .layer(axum::middleware::from_fn_with_state(
+            state.clone(),
+            oidc::middleware::auth,
+        ))
         .layer(session_layer)
         .nest("/api", handlers::incoming_calls::router(state.clone()))
         .route(
@@ -174,9 +190,35 @@ pub async fn get_router(pool: sqlx::PgPool, ldap: Ldap) -> Router {
             get(handlers::health_check::health_check_handler),
         )
         .with_state(state)
+        .route(
+            "/_dioxus",
+            get(move |ws: WebSocketUpgrade| async move {
+                ws.on_upgrade(move |mut socket| async move {
+                    // When the WebSocket is upgraded, launch the LiveView with the app component
+                    while socket.recv().await.is_some() {}
+                })
+            }),
+        )
+    /* .route(
+        "/ws",
+        get(move |ws: WebSocketUpgrade| async move {
+            ws.on_upgrade(move |socket| async move {
+                // When the WebSocket is upgraded, launch the LiveView with the app component
+                _ = view.launch(dioxus_liveview::axum_socket(socket), app).await;
+            })
+        }),
+    )*/
 }
 
 pub async fn get_test_router(pool: sqlx::PgPool) -> Router {
+    let static_path = env::var("STATIC_PATH")
+        .expect("STATIC_PATH must be set")
+        .pipe(PathBuf::from);
+
+    let manifest = Manifest::load(&static_path)
+        .await
+        .expect("failed to load manifest");
+
     let ldap = connect_ldap().await;
 
     let user = User {
@@ -200,10 +242,12 @@ pub async fn get_test_router(pool: sqlx::PgPool) -> Router {
         oidc_client: Arc::new(ArcSwap::new(Arc::new(None))),
         authentication,
         ldap,
+        static_path: Arc::new(static_path),
+        manifest: Arc::new(manifest),
     };
 
     Router::new()
-        .route("/", get(index_handler))
+        // .route("/", get(index_handler))
         .nest(
             "/api/phone_calls",
             handlers::phone_calls::router(state.clone()),
@@ -218,7 +262,7 @@ pub async fn get_test_router(pool: sqlx::PgPool) -> Router {
         .with_state(state)
 }
 
-#[axum::debug_handler]
-pub async fn index_handler(Extension(user): Extension<Arc<User>>) -> String {
-    format!("Hello, {user:#?}!")
-}
+// #[axum::debug_handler]
+// pub async fn index_handler(Extension(user): Extension<Arc<User>>) -> String {
+//     format!("Hello, {user:#?}!")
+// }

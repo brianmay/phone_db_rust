@@ -73,7 +73,10 @@ async fn post_contacts(
     .await?;
 
     if result.rows_affected() == 0 {
-        Err(errors::Error::NotFound("Contact".to_string(), request.id))?;
+        Err(errors::Error::ObjectNotFound(
+            "Contact".to_string(),
+            request.id,
+        ))?;
     }
 
     Ok(Response::new(()))

@@ -18,8 +18,11 @@ pub enum Error {
     #[error("SQLX Error: {0}")]
     Sqlx(#[from] sqlx::Error),
 
+    #[error("Not found")]
+    NotFound,
+
     #[error("{0} Not found: {1}")]
-    NotFound(String, i64),
+    ObjectNotFound(String, i64),
 
     #[error("OIDC Error: {0}")]
     Oidc(#[from] super::oidc::Error),
@@ -41,6 +44,12 @@ pub enum Error {
 
     #[error("Too many LDAP results")]
     LdapTooManyResults,
+
+    #[error("Method not allowed")]
+    MethodNotAllowed,
+
+    #[error("Asset load error {0}: {1}")]
+    AssetLoad(String, std::io::Error),
 }
 
 impl IntoResponse for Error {
@@ -53,7 +62,14 @@ impl IntoResponse for Error {
                 };
                 (StatusCode::INTERNAL_SERVER_ERROR, Json(response)).into_response()
             }
-            Self::NotFound(class, id) => {
+            Self::NotFound => {
+                error!("Not found");
+                let response = MyResponse::<()>::Error {
+                    message: "Not found".to_string(),
+                };
+                (StatusCode::NOT_FOUND, Json(response)).into_response()
+            }
+            Self::ObjectNotFound(class, id) => {
                 let response = MyResponse::<()>::Error {
                     message: format!("{class} with id {id} not found"),
                 };
@@ -103,6 +119,20 @@ impl IntoResponse for Error {
             }
             Self::LdapTooManyResults => {
                 error!("LDAP too many results");
+                let response = MyResponse::<()>::Error {
+                    message: "internal error".to_string(),
+                };
+                (StatusCode::INTERNAL_SERVER_ERROR, Json(response)).into_response()
+            }
+            Self::MethodNotAllowed => {
+                error!("Method not allowed");
+                let response = MyResponse::<()>::Error {
+                    message: "Method not allowed".to_string(),
+                };
+                (StatusCode::METHOD_NOT_ALLOWED, Json(response)).into_response()
+            }
+            Self::AssetLoad(asset, error) => {
+                error!("Asset load error {asset}: {error}");
                 let response = MyResponse::<()>::Error {
                     message: "internal error".to_string(),
                 };
