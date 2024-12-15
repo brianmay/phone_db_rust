@@ -25,7 +25,7 @@ async fn get_phone_calls(
     conditional_query_as!(
         PhoneCall,
         r#"
-        SELECT phone_calls.*, contacts.name as contact_name, contacts.action as contact_action, contacts.comments as contact_comments
+        SELECT phone_calls.*, contacts.name as contact_name, contacts.phone_number as contact_phone_number, contacts.action as contact_action, contacts.comments as contact_comments
         FROM phone_calls
         INNER JOIN contacts ON contacts.id = phone_calls.contact_id
         {#where_clause}

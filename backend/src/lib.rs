@@ -4,9 +4,14 @@ use std::sync::Arc;
 
 use arc_swap::ArcSwap;
 use axum::extract::ws::WebSocketUpgrade;
+use axum::extract::ws::{Message, WebSocket};
 use axum::extract::FromRef;
+use axum::response::Html;
 use axum::Extension;
 use axum::{routing::get, Router};
+use dioxus::prelude::*;
+use dioxus_liveview::{interpreter_glue, LiveViewError, LiveViewSocket};
+use futures_util::{SinkExt, StreamExt};
 use handlers::assets::Manifest;
 use oidc::Client;
 use simple_ldap::pool as ldap_pool;
@@ -24,7 +29,9 @@ mod ldap;
 mod oidc;
 pub mod types;
 
+use common::PhoneCall;
 use common::User;
+use errors::Error;
 
 #[derive(Debug, Clone)]
 pub struct Authentication {
@@ -46,6 +53,151 @@ pub struct AppState {
 pub struct Ldap {
     pool: Arc<ldap_pool::LdapPool>,
     base_dn: Arc<String>,
+}
+
+async fn get_phone_calls(db: &PgPool) -> Result<Vec<PhoneCall>, Error> {
+    sqlx::query_as!(
+        PhoneCall,
+        r#"
+        SELECT phone_calls.*, contacts.name as contact_name, contacts.phone_number as contact_phone_number, contacts.action as contact_action, contacts.comments as contact_comments
+        FROM phone_calls
+        INNER JOIN contacts ON contacts.id = phone_calls.contact_id
+        ORDER BY inserted_at, id DESC
+        LIMIT 10
+        "#,
+    )
+    .fetch_all(db)
+    .await?
+    .pipe(Ok)
+}
+
+fn app(state: AppState) -> Element {
+    let mut num = use_signal(|| 0);
+
+    let static_path = state.static_path.display();
+
+    rsx! {
+        div {
+            "hello axum! {num} {static_path}"
+            button { onclick: move |_| num += 1, "Increment" }
+        }
+    }
+}
+
+/// Convert an Axum WebSocket into a `LiveViewSocket`.
+///
+/// This is required to launch a LiveView app using the Axum web framework.
+pub fn axum_socket(ws: WebSocket) -> impl LiveViewSocket {
+    ws.map(transform_rx)
+        .with(transform_tx)
+        .sink_map_err(|_| LiveViewError::SendingFailed)
+}
+
+fn transform_rx(message: Result<Message, axum::Error>) -> Result<Vec<u8>, LiveViewError> {
+    message
+        .map_err(|_| LiveViewError::SendingFailed)?
+        .into_text()
+        .map(|s| s.into_bytes())
+        .map_err(|_| LiveViewError::SendingFailed)
+}
+
+async fn transform_tx(message: Vec<u8>) -> Result<Message, axum::Error> {
+    Ok(Message::Binary(message))
+}
+
+trait MyRouter {
+    fn with_virtual_dom2(
+        self,
+        route: &str,
+        f: fn(AppState) -> Element,
+        state: AppState,
+        // app: impl Fn() -> dioxus_core::prelude::VirtualDom + Send + Sync + 'static,
+    ) -> Self;
+}
+
+impl MyRouter for Router<AppState> {
+    fn with_virtual_dom2(
+        self,
+        route: &str,
+        f: fn(AppState) -> Element,
+        state: AppState,
+        //app: impl Fn() -> dioxus_core::prelude::VirtualDom + Send + Sync + 'static,
+    ) -> Self {
+        let app = move || VirtualDom::new_with_props::<AppState, _>(f, state.clone());
+
+        let view = dioxus_liveview::LiveViewPool::new();
+
+        let ws_path = if route.ends_with("/") {
+            format!("{}ws", route)
+        } else {
+            format!("{}/ws", route)
+        };
+
+        let title = "Phone DB";
+
+        let index_page_with_glue = move |glue: &str| {
+            Html(format!(
+                r#"
+        <!DOCTYPE html>
+        <html>
+            <head><title>{title}</title></head>
+            <body><div id="main"></div></body>
+            {glue}
+        </html>
+        "#,
+            ))
+        };
+
+        let app = Arc::new(app);
+
+        self.route(
+            &ws_path,
+            get(move |ws: WebSocketUpgrade| async move {
+                let app = app.clone();
+                ws.on_upgrade(move |socket| async move {
+                    _ = view
+                        .launch_virtualdom(axum_socket(socket), move || app())
+                        .await;
+                })
+            }),
+        )
+        .route(
+            route,
+            get(move || async move { index_page_with_glue(&interpreter_glue(&ws_path)) }),
+        )
+    }
+}
+
+fn test(state: AppState) -> Element {
+    let phone_calls = use_resource(move || {
+        let db = state.db.clone();
+        async move { get_phone_calls(&db).await }
+    });
+
+    match &*phone_calls.read_unchecked() {
+        Some(Ok(list)) => {
+            // if it is, render the stories
+            rsx! {
+                div {
+                    // iterate over the stories with a for loop
+                    for story in list {
+                        // render every story with the StoryListing component
+                        "{story.id.to_string()}"
+                        "{story.contact_id.to_string()}"
+                        br {}
+                    }
+                }
+            }
+        }
+        Some(Err(err)) => {
+            // if there was an error, render the error
+            rsx! {"An error occurred while fetching stories {err}"}
+        }
+        None => {
+            // if the future is not resolved yet, render a loading message
+            rsx! {"Loading items"}
+        }
+    }
 }
 
 pub async fn main(http_listen: &str, database_url: &str) {
@@ -172,7 +324,9 @@ pub async fn get_router(pool: sqlx::PgPool, ldap: Ldap) -> Router {
     };
 
     Router::new()
-        // .route("/", get(index_handler))
+        //.route("/", get(index_handler))
+        .with_virtual_dom2("/", app, state.clone())
+        .with_virtual_dom2("/test", test, state.clone())
         .nest(
             "/api/phone_calls",
             handlers::phone_calls::router(state.clone()),
@@ -189,7 +343,7 @@ pub async fn get_router(pool: sqlx::PgPool, ldap: Ldap) -> Router {
             "/api/healthcheck",
             get(handlers::health_check::health_check_handler),
         )
-        .with_state(state)
+        .with_state(state.clone())
         .route(
             "/_dioxus",
             get(move |ws: WebSocketUpgrade| async move {
@@ -199,15 +353,6 @@ pub async fn get_router(pool: sqlx::PgPool, ldap: Ldap) -> Router {
                 })
             }),
         )
-    /* .route(
-        "/ws",
-        get(move |ws: WebSocketUpgrade| async move {
-            ws.on_upgrade(move |socket| async move {
-                // When the WebSocket is upgraded, launch the LiveView with the app component
-                _ = view.launch(dioxus_liveview::axum_socket(socket), app).await;
-            })
-        }),
-    )*/
 }
 
 pub async fn get_test_router(pool: sqlx::PgPool) -> Router {

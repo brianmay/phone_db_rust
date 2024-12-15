@@ -51,6 +51,7 @@ pub struct PhoneCall {
     pub action: Action,
     pub contact_id: i64,
     pub contact_name: Option<String>,
+    pub contact_phone_number: String,
     pub contact_action: Action,
     pub contact_comments: Option<String>,
     pub destination_number: Option<String>,

@@ -6,5 +6,5 @@ edition = "2021"
 [dependencies]
 #dioxus = { version = "0.6.0", features = ["asset", "document", "file_engine", "hooks", "html", "launch", "logger", "macro", "mounted", "signals", "web"], default-features = false }
 #dioxus-web = { version = "0.6.0", default-features = false, features = ["document", "file_engine", "mounted"] }
-dioxus = { version = "0.6.0", features = ["web"], default-features = false }
+dioxus = { version = "0.6.0", features = ["web"] }
 dioxus-web = { version = "0.6.0" }
