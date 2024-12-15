@@ -1,11 +1,34 @@
 {
     "cSpell.words": [
         "axum",
+        "bindgen",
+        "cachix",
         "chrono",
+        "Clippy",
         "conn",
+        "creds",
+        "devenv",
+        "dioxus",
+        "flockenzeit",
         "healthcheck",
+        "inetorgperson",
         "Itertools",
         "ldap",
-        "sqlx"
+        "ldapsearch",
+        "ldif",
+        "libexec",
+        "liveview",
+        "moduleload",
+        "nixpkgs",
+        "numtide",
+        "onclick",
+        "oxalica",
+        "pkgs",
+        "ppolicy",
+        "slapadd",
+        "sqlx",
+        "toggler",
+        "virtualdom",
+        "zstd"
     ]
 }

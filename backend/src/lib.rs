@@ -5,7 +5,7 @@ use std::sync::Arc;
 use arc_swap::ArcSwap;
 use axum::extract::ws::WebSocketUpgrade;
 use axum::extract::ws::{Message, WebSocket};
-use axum::extract::FromRef;
+use axum::extract::{FromRef, State};
 use axum::response::Html;
 use axum::Extension;
 use axum::{routing::get, Router};
@@ -28,6 +28,7 @@ mod handlers;
 mod ldap;
 mod oidc;
 pub mod types;
+mod version;
 
 use common::PhoneCall;
 use common::User;
@@ -71,16 +72,18 @@ async fn get_phone_calls(db: &PgPool) -> Result<Vec<PhoneCall>, Error> {
     .pipe(Ok)
 }
 
-fn app(state: AppState) -> Element {
+fn app(props: Props) -> Element {
     let mut num = use_signal(|| 0);
 
-    let static_path = state.static_path.display();
+    let user = format!("{:?}", props.user);
 
     rsx! {
+        NavBar {}
         div {
-            "hello axum! {num} {static_path}"
+            "hello {user}! {num}"
             button { onclick: move |_| num += 1, "Increment" }
         }
+        Footer {}
     }
 }
 
@@ -105,25 +108,99 @@ async fn transform_tx(message: Vec<u8>) -> Result<Message, axum::Error> {
     Ok(Message::Binary(message))
 }
 
+fn NavBar() -> Element {
+    rsx! {
+            nav {
+                class: "navbar navbar-expand-sm navbar-dark bg-dark navbar-fixed-top",
+                role: "navigation",
+                div {
+                    class: "container-fluid",
+                    a { class: "navbar-brand", href: "/", "Phone DB" }
+                    button {
+                        class: "navbar-toggler",
+                        type: "button",
+                        "data-bs-toggle": "collapse",
+                        "data-bs-target": "#navbarNav",
+                        "aria-controls": "navbarNav",
+                        "aria-expanded": "false",
+                        "aria-label": "Toggle navigation",
+                        span { class: "navbar-toggler-icon"}
+                    }
+                    div { class: "collapse navbar-collapse", id: "navbarNav",
+                        div { class: "navbar-nav",
+                            li { class: "nav-item",
+                                a { class: "nav-link", href: "/welcome", { "Login" }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+fn Footer() -> Element {
+    let build_date: &str = version::BUILD_DATE.unwrap_or("unknown");
+    let build_version: &str = version::VCS_REF.unwrap_or("unknown");
+
+    rsx! {
+        footer {
+            div {
+                div { { "Build Date: " } { build_date } }
+                div { { "Version: " }  { build_version } }
+            }
+            div {
+                "Robotica"
+            }
+        }
+    }
+}
+
+fn html_page_with_content(content: &str, state: &AppState) -> Html<String> {
+    let backend_js = state.manifest.get_url("backend.js");
+
+    Html(format!(
+        r#"
+<!DOCTYPE html>
+<html>
+    <head>
+      <title>Phone DB</title>
+      <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+      <script src="{backend_js}"></script>
+    </head>
+    <body><div id="main"></div></body>
+    {content}
+</html>
+"#,
+    ))
+}
+
 trait MyRouter {
-    fn with_virtual_dom2(
+    fn with_my_app(
         self,
         route: &str,
-        f: fn(AppState) -> Element,
-        state: AppState,
+        f: fn(Props) -> Element,
+        // state: AppState,
         // app: impl Fn() -> dioxus_core::prelude::VirtualDom + Send + Sync + 'static,
     ) -> Self;
 }
 
+#[derive(Clone)]
+struct Props {
+    state: AppState,
+    user: Arc<User>,
+}
+
 impl MyRouter for Router<AppState> {
-    fn with_virtual_dom2(
+    fn with_my_app(
         self,
         route: &str,
-        f: fn(AppState) -> Element,
-        state: AppState,
+        f: fn(Props) -> Element,
+        // state: AppState,
         //app: impl Fn() -> dioxus_core::prelude::VirtualDom + Send + Sync + 'static,
     ) -> Self {
-        let app = move || VirtualDom::new_with_props::<AppState, _>(f, state.clone());
+        // let state_clone = state.clone();
+        // let app = move || VirtualDom::new_with_props::<AppState, _>(f, state_clone.clone());
 
         let view = dioxus_liveview::LiveViewPool::new();
 
@@ -133,44 +210,39 @@ impl MyRouter for Router<AppState> {
             format!("{}/ws", route)
         };
 
-        let title = "Phone DB";
-
-        let index_page_with_glue = move |glue: &str| {
-            Html(format!(
-                r#"
-        <!DOCTYPE html>
-        <html>
-            <head><title>{title}</title></head>
-            <body><div id="main"></div></body>
-            {glue}
-        </html>
-        "#,
-            ))
-        };
-
-        let app = Arc::new(app);
+        // let app = Arc::new(app);
 
         self.route(
             &ws_path,
-            get(move |ws: WebSocketUpgrade| async move {
-                let app = app.clone();
-                ws.on_upgrade(move |socket| async move {
-                    _ = view
-                        .launch_virtualdom(axum_socket(socket), move || app())
-                        .await;
-                })
-            }),
+            get(
+                move |ws: WebSocketUpgrade,
+                      State(state): State<AppState>,
+                      Extension(user): Extension<Arc<User>>| async move {
+                    // let app = app.clone();
+                    let props = Props { state, user };
+                    let app = move || VirtualDom::new_with_props::<Props, _>(f, props.clone());
+                    let app = Arc::new(app);
+
+                    ws.on_upgrade(move |socket| async move {
+                        _ = view
+                            .launch_virtualdom(axum_socket(socket), move || app())
+                            .await;
+                    })
+                },
+            ),
         )
         .route(
             route,
-            get(move || async move { index_page_with_glue(&interpreter_glue(&ws_path)) }),
+            get(move |State(state): State<AppState>| async move {
+                html_page_with_content(&interpreter_glue(&ws_path), &state)
+            }),
         )
     }
 }
 
-fn test(state: AppState) -> Element {
+fn test(props: Props) -> Element {
     let phone_calls = use_resource(move || {
-        let db = state.db.clone();
+        let db = props.state.db.clone();
         async move { get_phone_calls(&db).await }
     });
 
@@ -325,8 +397,8 @@ pub async fn get_router(pool: sqlx::PgPool, ldap: Ldap) -> Router {
 
     Router::new()
         //.route("/", get(index_handler))
-        .with_virtual_dom2("/", app, state.clone())
-        .with_virtual_dom2("/test", test, state.clone())
+        .with_my_app("/", app)
+        .with_my_app("/test", test)
         .nest(
             "/api/phone_calls",
             handlers::phone_calls::router(state.clone()),

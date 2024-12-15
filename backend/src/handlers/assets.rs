@@ -63,9 +63,9 @@ impl Manifest {
         self.1.join(self.get_internal(key))
     }
 
-    // fn get_url(&self, key: &str) -> String {
-    //     format!("/{}", self.get_internal(key))
-    // }
+    pub fn get_url(&self, key: &str) -> String {
+        format!("/{}", self.get_internal(key))
+    }
 }
 
 const ASSET_SUFFIXES: [&str; 9] = [
