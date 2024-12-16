@@ -1,3 +1,7 @@
+use core::fmt;
+use std::fmt::Display;
+use std::fmt::Formatter;
+
 use chrono::DateTime;
 use chrono::Utc;
 use serde::{Deserialize, Serialize};
@@ -35,6 +39,12 @@ impl Action {
     }
 }
 
+impl Display for Action {
+    fn fmt(&self, f: &mut Formatter) -> fmt::Result {
+        write!(f, "{}", self.as_str())
+    }
+}
+
 impl From<String> for Action {
     fn from(s: String) -> Self {
         match s.as_str() {
@@ -45,8 +55,8 @@ impl From<String> for Action {
     }
 }
 
-#[derive(Debug, Deserialize, Serialize)]
-pub struct PhoneCall {
+#[derive(Clone, Debug, Deserialize, Serialize)]
+pub struct PhoneCallDetails {
     pub id: i64,
     pub action: Action,
     pub contact_id: i64,
@@ -57,9 +67,10 @@ pub struct PhoneCall {
     pub destination_number: Option<String>,
     pub inserted_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
+    pub number_calls: Option<i64>,
 }
 
-impl PhoneCall {
+impl PhoneCallDetails {
     pub fn get_key(&self) -> PhoneCallKey {
         PhoneCallKey {
             inserted_at: self.inserted_at,
@@ -68,7 +79,7 @@ impl PhoneCall {
     }
 }
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug, Deserialize, Serialize, Clone)]
 pub struct PhoneCallKey {
     pub inserted_at: DateTime<Utc>,
     pub id: i64,
@@ -138,4 +149,11 @@ pub struct IncomingPhoneCallResponse {
 #[derive(Debug, Deserialize, Serialize)]
 pub struct PageRequest<T> {
     pub after_key: Option<T>,
+    pub search: Option<String>,
+}
+
+#[derive(Debug, Deserialize, Serialize)]
+pub struct Page<T, K> {
+    pub items: Vec<T>,
+    pub next_key: Option<K>,
 }

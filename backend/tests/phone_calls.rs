@@ -1,6 +1,6 @@
 use axum_test::TestServer;
 use backend::types::Contact;
-use common::{Action, PhoneCall, Response};
+use common::{Action, Page, PhoneCallDetails, PhoneCallKey, Response};
 use sqlx::PgPool;
 
 #[sqlx::test]
@@ -14,13 +14,14 @@ async fn test_no_phone_calls(db: PgPool) {
 
     // Assertions.
     response.assert_status_ok();
-    let response = response.json::<Response<Vec<PhoneCall>>>();
+    let response = response.json::<Response<Page<PhoneCallDetails, PhoneCallKey>>>();
 
     let Response::Success { data: response } = response else {
         panic!("Expected a success response, got: {:?}", response);
     };
 
-    assert_eq!(response.len(), 0);
+    assert!(response.next_key.is_none());
+    assert_eq!(response.items.len(), 0);
 }
 
 #[sqlx::test]
@@ -64,16 +65,17 @@ async fn test_one_phone_call(db: PgPool) {
 
     // Assertions.
     response.assert_status_ok();
-    let response = response.json::<Response<Vec<PhoneCall>>>();
+    let response = response.json::<Response<Page<PhoneCallDetails, PhoneCallKey>>>();
 
     let Response::Success { data: response } = response else {
         panic!("Expected a success response, got: {:?}", response);
     };
 
-    assert_eq!(response.len(), 1);
+    assert!(response.next_key.is_none());
+    assert_eq!(response.items.len(), 1);
     assert_eq!(
-        response[0].destination_number,
+        response.items[0].destination_number,
         Some("0312345678".to_string())
     );
-    assert_eq!(response[0].action, Action::Allow);
+    assert_eq!(response.items[0].action, Action::Allow);
 }

@@ -3,15 +3,14 @@ use axum::routing::{get, post};
 use axum::{Json, Router};
 use serde_qs::axum::QsQuery;
 use sqlx::postgres::PgPool;
-use sqlx_conditional_queries::conditional_query_as;
 use tap::Pipe;
 
-use crate::errors;
+use crate::{database, errors};
 
 use crate::errors::{Response, Result};
 use crate::AppState;
 
-use common::{ContactDetails, ContactKey, ContactUpdateRequest, PageRequest};
+use common::{ContactDetails, ContactKey, ContactUpdateRequest, Page, PageRequest};
 
 pub fn router(state: AppState) -> Router<AppState> {
     Router::new()
@@ -24,25 +23,11 @@ pub fn router(state: AppState) -> Router<AppState> {
 async fn get_contacts(
     State(db): State<PgPool>,
     QsQuery(request): QsQuery<PageRequest<ContactKey>>,
-) -> Result<Vec<ContactDetails>> {
-    conditional_query_as!(
-        ContactDetails,
-        r#"
-        SELECT *, (SELECT COUNT(*) FROM phone_calls WHERE contact_id = contacts.id) as number_calls
-        FROM contacts
-        {#where_clause}
-        ORDER BY phone_number, id
-        LIMIT 10
-        "#,
-        #where_clause = match request.after_key {
-            Some(ContactKey{phone_number, id}) => "WHERE (phone_number, id) > ({phone_number},{id})",
-            None => "",
-        }
-    )
-    .fetch_all(&db)
-    .await?
-    .pipe(Response::new)
-    .pipe(Ok)
+) -> Result<Page<ContactDetails, ContactKey>> {
+    database::contacts::get_contacts(&db, &request)
+        .await?
+        .pipe(Response::new)
+        .pipe(Ok)
 }
 
 #[axum::debug_handler]
@@ -50,34 +35,13 @@ async fn post_contacts(
     State(db): State<PgPool>,
     Json(request): Json<ContactUpdateRequest>,
 ) -> Result<()> {
-    let time = chrono::Utc::now();
-    let ContactUpdateRequest {
-        id,
-        name,
-        action,
-        comments,
-    } = request;
-
-    let result = sqlx::query!(
-        r#"
-        UPDATE contacts SET name = $2, action = $3, comments = $4, updated_at = $5
-        WHERE id = $1
-        "#,
-        id,
-        name,
-        action.as_str(),
-        comments,
-        time
-    )
-    .execute(&db)
-    .await?;
-
-    if result.rows_affected() == 0 {
-        Err(errors::Error::ObjectNotFound(
-            "Contact".to_string(),
-            request.id,
-        ))?;
-    }
-
-    Ok(Response::new(()))
+    let id = request.id;
+    database::contacts::update_contact(&db, &request)
+        .await
+        .map_err(|err| match err {
+            sqlx::Error::RowNotFound => errors::Error::ObjectNotFound("Contact".to_string(), id),
+            _ => errors::Error::Sqlx(err),
+        })?
+        .pipe(Response::new)
+        .pipe(Ok)
 }

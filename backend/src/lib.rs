@@ -23,6 +23,9 @@ use tower_sessions::cookie::SameSite;
 use tower_sessions::{ExpiredDeletion, Expiry, SessionManagerLayer};
 use tower_sessions_sqlx_store_chrono::PostgresStore;
 
+mod components;
+mod database;
+mod datetime;
 mod errors;
 mod handlers;
 mod ldap;
@@ -30,9 +33,9 @@ mod oidc;
 pub mod types;
 mod version;
 
-use common::PhoneCall;
 use common::User;
-use errors::Error;
+use components::phone_calls::PhoneCalls;
+use components::root::App;
 
 #[derive(Debug, Clone)]
 pub struct Authentication {
@@ -56,37 +59,6 @@ pub struct Ldap {
     base_dn: Arc<String>,
 }
 
-async fn get_phone_calls(db: &PgPool) -> Result<Vec<PhoneCall>, Error> {
-    sqlx::query_as!(
-        PhoneCall,
-        r#"
-        SELECT phone_calls.*, contacts.name as contact_name, contacts.phone_number as contact_phone_number, contacts.action as contact_action, contacts.comments as contact_comments
-        FROM phone_calls
-        INNER JOIN contacts ON contacts.id = phone_calls.contact_id
-        ORDER BY inserted_at, id DESC
-        LIMIT 10
-        "#,
-    )
-    .fetch_all(db)
-    .await?
-    .pipe(Ok)
-}
-
-fn app(props: Props) -> Element {
-    let mut num = use_signal(|| 0);
-
-    let user = format!("{:?}", props.user);
-
-    rsx! {
-        NavBar {}
-        div {
-            "hello {user}! {num}"
-            button { onclick: move |_| num += 1, "Increment" }
-        }
-        Footer {}
-    }
-}
-
 /// Convert an Axum WebSocket into a `LiveViewSocket`.
 ///
 /// This is required to launch a LiveView app using the Axum web framework.
@@ -106,54 +78,6 @@ fn transform_rx(message: Result<Message, axum::Error>) -> Result<Vec<u8>, LiveVi
 
 async fn transform_tx(message: Vec<u8>) -> Result<Message, axum::Error> {
     Ok(Message::Binary(message))
-}
-
-fn NavBar() -> Element {
-    rsx! {
-            nav {
-                class: "navbar navbar-expand-sm navbar-dark bg-dark navbar-fixed-top",
-                role: "navigation",
-                div {
-                    class: "container-fluid",
-                    a { class: "navbar-brand", href: "/", "Phone DB" }
-                    button {
-                        class: "navbar-toggler",
-                        type: "button",
-                        "data-bs-toggle": "collapse",
-                        "data-bs-target": "#navbarNav",
-                        "aria-controls": "navbarNav",
-                        "aria-expanded": "false",
-                        "aria-label": "Toggle navigation",
-                        span { class: "navbar-toggler-icon"}
-                    }
-                    div { class: "collapse navbar-collapse", id: "navbarNav",
-                        div { class: "navbar-nav",
-                            li { class: "nav-item",
-                                a { class: "nav-link", href: "/welcome", { "Login" }
-                            }
-                        }
-                    }
-                }
-            }
-        }
-    }
-}
-
-fn Footer() -> Element {
-    let build_date: &str = version::BUILD_DATE.unwrap_or("unknown");
-    let build_version: &str = version::VCS_REF.unwrap_or("unknown");
-
-    rsx! {
-        footer {
-            div {
-                div { { "Build Date: " } { build_date } }
-                div { { "Version: " }  { build_version } }
-            }
-            div {
-                "Robotica"
-            }
-        }
-    }
 }
 
 fn html_page_with_content(content: &str, state: &AppState) -> Html<String> {
@@ -237,38 +161,6 @@ impl MyRouter for Router<AppState> {
                 html_page_with_content(&interpreter_glue(&ws_path), &state)
             }),
         )
-    }
-}
-
-fn test(props: Props) -> Element {
-    let phone_calls = use_resource(move || {
-        let db = props.state.db.clone();
-        async move { get_phone_calls(&db).await }
-    });
-
-    match &*phone_calls.read_unchecked() {
-        Some(Ok(list)) => {
-            // if it is, render the stories
-            rsx! {
-                div {
-                    // iterate over the stories with a for loop
-                    for story in list {
-                        // render every story with the StoryListing component
-                        "{story.id.to_string()}"
-                        "{story.contact_id.to_string()}"
-                        br {}
-                    }
-                }
-            }
-        }
-        Some(Err(err)) => {
-            // if there was an error, render the error
-            rsx! {"An error occurred while fetching stories {err}"}
-        }
-        None => {
-            // if the future is not resolved yet, render a loading message
-            rsx! {"Loading items"}
-        }
     }
 }
 
@@ -396,9 +288,8 @@ pub async fn get_router(pool: sqlx::PgPool, ldap: Ldap) -> Router {
     };
 
     Router::new()
-        //.route("/", get(index_handler))
-        .with_my_app("/", app)
-        .with_my_app("/test", test)
+        .with_my_app("/", App)
+        .with_my_app("/phone_calls", PhoneCalls)
         .nest(
             "/api/phone_calls",
             handlers::phone_calls::router(state.clone()),
@@ -464,7 +355,6 @@ pub async fn get_test_router(pool: sqlx::PgPool) -> Router {
     };
 
     Router::new()
-        // .route("/", get(index_handler))
         .nest(
             "/api/phone_calls",
             handlers::phone_calls::router(state.clone()),
@@ -478,8 +368,3 @@ pub async fn get_test_router(pool: sqlx::PgPool) -> Router {
         )
         .with_state(state)
 }
-
-// #[axum::debug_handler]
-// pub async fn index_handler(Extension(user): Extension<Arc<User>>) -> String {
-//     format!("Hello, {user:#?}!")
-// }
