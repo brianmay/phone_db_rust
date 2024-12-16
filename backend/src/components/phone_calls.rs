@@ -4,10 +4,12 @@ use super::page::{Footer, NavBar};
 use crate::{database, datetime::datetime_to_string, Props};
 use common::{Page, PhoneCallDetails, PhoneCallKey};
 use dioxus::prelude::*;
+use sqlx::PgPool;
 
 #[component]
-fn PhoneCall(phone_call: ReadOnlySignal<PhoneCallDetails>) -> Element {
+fn PhoneCall(show_actions: bool, phone_call: ReadOnlySignal<PhoneCallDetails>) -> Element {
     let phone_call = phone_call.read();
+    let contact_id = phone_call.contact_id;
 
     rsx! {
         tr {
@@ -16,13 +18,16 @@ fn PhoneCall(phone_call: ReadOnlySignal<PhoneCallDetails>) -> Element {
             td { { phone_call.contact_name.clone() } }
             td { { phone_call.destination_number.clone() } }
             td { { phone_call.action.to_string()} {"->"} { phone_call.contact_action.to_string() } }
-            td { { phone_call.number_calls.unwrap_or(99).to_string() } }
-            td { "" }
+            td { { phone_call.number_calls.unwrap_or(-1).to_string() } }
+            if show_actions {
+                td { a { href: format!("/contacts/{contact_id}"), "Contact" } }
+            }
         }
     }
 }
 
-pub fn PhoneCalls(props: Props) -> Element {
+#[component]
+pub fn PhoneCallList(contact_id: Option<i64>) -> Element {
     let mut request = use_signal(|| common::PageRequest::<PhoneCallKey> {
         after_key: None,
         search: None,
@@ -37,12 +42,13 @@ pub fn PhoneCalls(props: Props) -> Element {
     //     async move { database::phone_calls::get_phone_calls(&db, &request).await }
     // });
 
-    let db = props.state.db.clone();
+    let db = use_context::<PgPool>();
+
     let _resource = use_resource(move || {
         let db = db.clone();
         async move {
             let request = request.read_unchecked();
-            let result = database::phone_calls::get_phone_calls(&db, &request).await;
+            let result = database::phone_calls::get_phone_calls(&db, &request, None).await;
             let mut writable = phone_calls.write();
 
             match (writable.as_mut(), result) {
@@ -63,9 +69,6 @@ pub fn PhoneCalls(props: Props) -> Element {
     let mut next_key = Option::<PhoneCallKey>::None;
 
     rsx! {
-
-        NavBar {}
-
 
         main {
             role: "main",
@@ -104,12 +107,14 @@ pub fn PhoneCalls(props: Props) -> Element {
                                     th { "Destination" }
                                     th { "Action" }
                                     th { "Calls" }
-                                    th {}
+                                    if contact_id.is_none() {
+                                        th {}
+                                    }
                                 }
                             }
                             tbody {
                                 for phone_call in list {
-                                    PhoneCall { key: phone_call.id, phone_call: phone_call.clone() }
+                                    PhoneCall { key: phone_call.id, show_actions: contact_id.is_none(), phone_call: phone_call.clone() }
                                 }
                             }
                         }
@@ -140,8 +145,15 @@ pub fn PhoneCalls(props: Props) -> Element {
                 }
             }
         }
+    }
+}
 
+pub fn PhoneCallListView(props: Props) -> Element {
+    use_context_provider(|| props.state.db.clone());
+
+    rsx! {
+        NavBar {}
+        PhoneCallList { contact_id: None }
         Footer {}
-
     }
 }

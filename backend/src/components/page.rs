@@ -5,27 +5,36 @@ use dioxus::prelude::*;
 
 pub fn NavBar() -> Element {
     rsx! {
-            nav {
-                class: "navbar navbar-expand-sm navbar-dark bg-dark navbar-fixed-top",
-                role: "navigation",
+        nav {
+            class: "navbar navbar-expand-sm navbar-dark bg-dark navbar-fixed-top",
+            role: "navigation",
+            div {
+                class: "container-fluid",
+                a { class: "navbar-brand", href: "/", "Phone DB" }
+                button {
+                    class: "navbar-toggler",
+                    type: "button",
+                    "data-bs-toggle": "collapse",
+                    "data-bs-target": "#navbarNav",
+                    "aria-controls": "navbarNav",
+                    "aria-expanded": "false",
+                    "aria-label": "Toggle navigation",
+                    span { class: "navbar-toggler-icon"}
+                }
                 div {
-                    class: "container-fluid",
-                    a { class: "navbar-brand", href: "/", "Phone DB" }
-                    button {
-                        class: "navbar-toggler",
-                        type: "button",
-                        "data-bs-toggle": "collapse",
-                        "data-bs-target": "#navbarNav",
-                        "aria-controls": "navbarNav",
-                        "aria-expanded": "false",
-                        "aria-label": "Toggle navigation",
-                        span { class: "navbar-toggler-icon"}
+                    class: "collapse navbar-collapse", id: "navbarNav",
+                    div {
+                        class: "navbar-nav",
+                        li {
+                            class: "nav-item",
+                            a { class: "nav-link", href: "/phone_calls", { "Phone Calls" } }
+                        }
                     }
-                    div { class: "collapse navbar-collapse", id: "navbarNav",
-                       div { class: "navbar-nav",
-                            li { class: "nav-item",
-                                a { class: "nav-link", href: "/phone_calls", { "Phone Calls" }
-                            }
+                    div {
+                        class: "navbar-nav",
+                        li {
+                            class: "nav-item",
+                            a { class: "nav-link", href: "/contacts", { "Contacts" } }
                         }
                     }
                 }

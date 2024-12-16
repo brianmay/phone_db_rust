@@ -1,6 +1,6 @@
 use axum_test::TestServer;
 use backend::types::Contact;
-use common::{Action, Page, PhoneCallDetails, PhoneCallKey, Response};
+use common::{Action, ContactDetails, Page, PhoneCallDetails, PhoneCallKey, Response};
 use sqlx::PgPool;
 
 #[sqlx::test]
@@ -14,7 +14,7 @@ async fn test_no_phone_calls(db: PgPool) {
 
     // Assertions.
     response.assert_status_ok();
-    let response = response.json::<Response<Page<PhoneCallDetails, PhoneCallKey>>>();
+    let response = response.json::<Response<Page<ContactDetails, PhoneCallKey>>>();
 
     let Response::Success { data: response } = response else {
         panic!("Expected a success response, got: {:?}", response);

@@ -21,7 +21,7 @@ pub async fn get_phone_calls(
     State(db): State<PgPool>,
     QsQuery(request): QsQuery<PageRequest<PhoneCallKey>>,
 ) -> Result<Page<PhoneCallDetails, PhoneCallKey>> {
-    database::phone_calls::get_phone_calls(&db, &request)
+    database::phone_calls::get_phone_calls(&db, &request, None)
         .await?
         .pipe(Response::new)
         .pipe(Ok)

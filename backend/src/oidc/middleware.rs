@@ -21,7 +21,6 @@ pub async fn auth(
     mut request: Request,
     next: Next,
 ) -> Result<Response, Error> {
-    println!("auth middleware {}", request.uri().path());
     if request.uri().path() == "/openid_connect_redirect_uri" {
         let code = params.get("code").cloned().unwrap_or_default();
 

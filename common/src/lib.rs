@@ -85,7 +85,7 @@ pub struct PhoneCallKey {
     pub id: i64,
 }
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug, Deserialize, Serialize, Clone)]
 pub struct ContactDetails {
     pub id: i64,
     pub phone_number: String,
@@ -120,7 +120,7 @@ impl ContactDetails {
     }
 }
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug, Deserialize, Serialize, Clone)]
 pub struct ContactKey {
     pub phone_number: String,
     pub id: i64,
