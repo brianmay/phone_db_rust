@@ -108,6 +108,7 @@ pub async fn update_contact(contact: &Contact, ldap: &Ldap) -> Result<(), Error>
 
         None => {
             let dn = format!("telephoneNumber={},{}", contact.phone_number, ldap.base_dn);
+            println!("Creating new contact: {}", dn);
             if include_contact_in_ldap(contact) {
                 if let Some(name) = &contact.name {
                     let attrs = vec![

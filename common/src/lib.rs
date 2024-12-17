@@ -197,6 +197,14 @@ pub struct Default {
     pub updated_at: DateTime<Utc>,
 }
 
+impl Default {
+    pub fn test_phone_number(&self, phone_number: &str) -> bool {
+        regex::Regex::new(&self.regexp)
+            .map(|re| re.is_match(phone_number))
+            .unwrap_or(false)
+    }
+}
+
 #[derive(Debug, Deserialize, Serialize)]
 pub struct DefaultUpdateRequest {
     pub id: i64,
@@ -223,5 +231,9 @@ impl DefaultList {
 
     pub fn iter(&self) -> Iter<Default> {
         self.0.iter()
+    }
+
+    pub fn search_phone_number(&self, phone_number: &str) -> Option<&Default> {
+        self.0.iter().find(|d| d.test_phone_number(phone_number))
     }
 }

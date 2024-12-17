@@ -12,11 +12,11 @@ use tap::Pipe;
 
 use crate::errors::Error;
 use crate::errors::{Response, Result};
-use crate::ldap;
 use crate::types::Contact;
 use crate::AppState;
 use crate::Authentication;
 use crate::Ldap;
+use crate::{database, ldap};
 
 use common::{Action, IncomingPhoneCallRequest, IncomingPhoneCallResponse};
 
@@ -55,15 +55,23 @@ async fn post_handler(
     let contact = match contact {
         Some(contact) => contact,
         None => {
+            let defaults = database::defaults::get_defaults(&db).await?;
+
+            let default = defaults.search_phone_number(&request.phone_number);
+
+            let name = default.map(|d| d.name.clone());
+            let action = default.map(|d| d.action).unwrap_or(Action::Allow);
+
             sqlx::query_as!(
                 Contact,
                 r#"
-                INSERT INTO contacts (phone_number, action, inserted_at, updated_at)
-                VALUES ($1,$2,$3,$3)
+                INSERT INTO contacts (phone_number, name, action, inserted_at, updated_at)
+                VALUES ($1,$2,$3,$4,$4)
                 RETURNING *
                 "#,
                 request.phone_number,
-                Action::Allow.as_str(),
+                name,
+                action.as_str(),
                 now
             )
             .fetch_one(&db)

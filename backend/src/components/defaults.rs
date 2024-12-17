@@ -70,6 +70,8 @@ pub fn DefaultListView(props: Props) -> Element {
         get_defaults(&db).await
     });
 
+    let mut test_phone_number: Signal<Option<String>> = use_signal(|| None);
+
     let mut edit_default = use_signal(|| ActiveDialog::Idle);
 
     rsx! {
@@ -162,6 +164,47 @@ pub fn DefaultListView(props: Props) -> Element {
                     }
                 }
             }
+
+            form {
+                input { type: "text", placeholder: "Phone number", oninput: move |e| {
+                    let value = e.value();
+                    let value = if value.is_empty() { None } else { Some(value) };
+                    test_phone_number.set(value);
+                } }
+            }
+
+            if let Some(phone_number) = &*test_phone_number.read() {
+                if let Some(Ok(defaults)) = &*defaults.read() {
+
+                    div {
+                        class: "card",
+                        div {
+                            class: "card-header",
+                            "Testing phone number: {phone_number}"
+                        }
+
+                        div {
+                            class: "card-body",
+                            {
+                                let result = defaults.search_phone_number(phone_number);
+                                match result {
+                                    Some(result) => {
+                                        rsx! {
+                                            "default: {result:?}"
+                                        }
+                                    }
+                                    None => {
+                                        rsx! {
+                                            "No default found"
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
         }
 
         Footer {}

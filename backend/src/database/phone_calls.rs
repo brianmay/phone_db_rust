@@ -91,7 +91,7 @@ pub async fn get_phone_calls(
             builder.push("WHERE ");
         }
         builder
-            .push("(phone_calls.inserted_at, phone_calls.id) > (")
+            .push("(phone_calls.inserted_at, phone_calls.id) < (")
             .push_bind(inserted_at)
             .push(",")
             .push_bind(id)
@@ -99,7 +99,7 @@ pub async fn get_phone_calls(
     }
 
     builder
-        .push("ORDER BY inserted_at, id DESC ")
+        .push("ORDER BY inserted_at DESC, id DESC ")
         .push("LIMIT ")
         .push_bind(limit);
 
