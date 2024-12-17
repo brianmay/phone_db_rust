@@ -37,6 +37,7 @@ ws = "0.9.2"
 dioxus-liveview = { version = "0.6.0", features = ["axum"] }
 dioxus = { version = "0.6.0", features = ["liveview"] }
 futures-util = "0.3.31"
+regex = "1.11.1"
 # axum-oidc = "0.5.0"
 # tower = "0.5.2"
 # tower-sessions = "0.13.0"

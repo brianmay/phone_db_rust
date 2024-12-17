@@ -10,6 +10,7 @@ use axum::response::Html;
 use axum::Extension;
 use axum::{routing::get, Router};
 use components::contacts::{ContactDetailView, ContactListView};
+use components::defaults::{DefaultDetailView, DefaultListView};
 use dioxus::prelude::*;
 use dioxus_liveview::{interpreter_glue, LiveViewError, LiveViewSocket};
 use futures_util::{SinkExt, StreamExt};
@@ -307,6 +308,8 @@ pub async fn get_router(pool: sqlx::PgPool, ldap: Ldap) -> Router {
         .with_my_app("/phone_calls", PhoneCallListView)
         .with_my_app("/contacts", ContactListView)
         .with_my_app("/contacts/:id", ContactDetailView)
+        .with_my_app("/defaults", DefaultListView)
+        .with_my_app("/defaults/:id", DefaultDetailView)
         .nest(
             "/api/phone_calls",
             handlers::phone_calls::router(state.clone()),

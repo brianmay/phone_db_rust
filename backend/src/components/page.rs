@@ -37,6 +37,13 @@ pub fn NavBar() -> Element {
                             a { class: "nav-link", href: "/contacts", { "Contacts" } }
                         }
                     }
+                    div {
+                        class: "navbar-nav",
+                        li {
+                            class: "nav-item",
+                            a { class: "nav-link", href: "/defaults", { "Defaults" } }
+                        }
+                    }
                 }
             }
         }

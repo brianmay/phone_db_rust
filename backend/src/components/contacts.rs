@@ -11,7 +11,10 @@ use dioxus::prelude::*;
 use sqlx::PgPool;
 
 #[component]
-fn Contact(contact: ReadOnlySignal<ContactDetails>, on_edit_contact: Callback<i64>) -> Element {
+fn ContactComponent(
+    contact: ReadOnlySignal<ContactDetails>,
+    on_edit_contact: Callback<i64>,
+) -> Element {
     let contact = contact.read();
     let contact_id = contact.id;
 
@@ -118,7 +121,7 @@ pub fn ContactListView(props: Props) -> Element {
                             }
                             tbody {
                                 for contact in list {
-                                    Contact {
+                                    ContactComponent {
                                         key: contact.id,
                                         contact: contact.clone(),
                                         on_edit_contact: move |contact_id| {

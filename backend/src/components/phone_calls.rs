@@ -9,7 +9,7 @@ use dioxus::prelude::*;
 use sqlx::PgPool;
 
 #[component]
-fn PhoneCall(
+fn PhoneCallComponent(
     show_actions: bool,
     phone_call: ReadOnlySignal<PhoneCallDetails>,
     on_edit_contact: Callback<i64>,
@@ -129,7 +129,7 @@ pub fn PhoneCallList(
                             }
                             tbody {
                                 for phone_call in list {
-                                    PhoneCall {
+                                    PhoneCallComponent {
                                         key: phone_call.id, show_actions: contact_id.is_none(),
                                         phone_call: phone_call.clone(),
                                         on_edit_contact: move |contact_id| {

@@ -1,10 +1,12 @@
 use core::fmt;
 use std::fmt::Display;
 use std::fmt::Formatter;
+use std::slice::Iter;
 
 use chrono::DateTime;
 use chrono::Utc;
 use serde::{Deserialize, Serialize};
+use thiserror::Error;
 
 #[derive(Debug, Deserialize, Serialize)]
 pub struct User {
@@ -32,6 +34,7 @@ pub enum Action {
 }
 
 impl Action {
+    // for db conversions
     pub fn as_str(&self) -> &str {
         match self {
             Action::Allow => "allow",
@@ -46,11 +49,31 @@ impl Action {
 
 impl Display for Action {
     fn fmt(&self, f: &mut Formatter) -> fmt::Result {
-        write!(f, "{}", self.as_str())
+        match self {
+            Action::Allow => write!(f, "Allow"),
+            Action::VoiceMail => write!(f, "Voice mail"),
+        }
+    }
+}
+
+#[derive(Error, Debug)]
+#[error("Invalid action: {0}")]
+pub struct InvalidActionError(String);
+
+impl TryFrom<&str> for Action {
+    type Error = InvalidActionError;
+
+    fn try_from(s: &str) -> Result<Self, Self::Error> {
+        match s {
+            "allow" => Ok(Action::Allow),
+            "voicemail" => Ok(Action::VoiceMail),
+            _ => Err(InvalidActionError(s.to_string())),
+        }
     }
 }
 
 impl From<String> for Action {
+    // for db conversions
     fn from(s: String) -> Self {
         match s.as_str() {
             "allow" => Action::Allow,
@@ -161,4 +184,44 @@ pub struct PageRequest<T> {
 pub struct Page<T, K> {
     pub items: Vec<T>,
     pub next_key: Option<K>,
+}
+
+#[derive(Debug, Deserialize, Serialize, Clone)]
+pub struct Default {
+    pub id: i64,
+    pub order: i32,
+    pub regexp: String,
+    pub name: String,
+    pub action: Action,
+    pub inserted_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
+}
+
+#[derive(Debug, Deserialize, Serialize)]
+pub struct DefaultUpdateRequest {
+    pub id: i64,
+    pub order: i32,
+    pub regexp: String,
+    pub name: String,
+    pub action: Action,
+}
+
+#[derive(Debug, Deserialize, Serialize)]
+pub struct DefaultAddRequest {
+    pub order: i32,
+    pub regexp: String,
+    pub name: String,
+    pub action: Action,
+}
+
+pub struct DefaultList(Vec<Default>);
+
+impl DefaultList {
+    pub fn new(defaults: Vec<Default>) -> Self {
+        Self(defaults)
+    }
+
+    pub fn iter(&self) -> Iter<Default> {
+        self.0.iter()
+    }
 }
