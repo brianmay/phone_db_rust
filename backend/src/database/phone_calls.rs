@@ -27,7 +27,7 @@ impl FromRow<'_, PgRow> for PhoneCallType {
             updated_at: row.try_get("updated_at")?,
             id: row.try_get("id")?,
             contact_id: row.try_get("contact_id")?,
-            // phone_number: row.try_get("phone_number")?,
+            phone_number: row.try_get("phone_number")?,
             destination_number: row.try_get("destination_number")?,
             action: row.try_get::<String, _>("action")?.into(),
             contact_name: row.try_get("contact_name")?,

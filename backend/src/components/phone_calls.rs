@@ -20,7 +20,7 @@ fn PhoneCallComponent(
     rsx! {
         tr {
             td { { datetime_to_string(phone_call.inserted_at) } }
-            td { { phone_call.contact_phone_number.clone() } }
+            td { { phone_call.phone_number.clone() } }
             td { { phone_call.contact_name.clone() } }
             td { { phone_call.destination_number.clone() } }
             td { { phone_call.action.to_string()} {"->"} { phone_call.contact_action.to_string() } }

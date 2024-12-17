@@ -92,6 +92,7 @@ pub struct PhoneCallDetails {
     pub contact_phone_number: String,
     pub contact_action: Action,
     pub contact_comments: Option<String>,
+    pub phone_number: String,
     pub destination_number: Option<String>,
     pub inserted_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
