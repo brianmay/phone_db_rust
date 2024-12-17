@@ -22,8 +22,9 @@ pub enum Response<T> {
     Error { message: String },
 }
 
-#[derive(Debug, Deserialize, Serialize, Copy, Clone, Eq, PartialEq)]
+#[derive(Debug, Deserialize, Serialize, Copy, Clone, Eq, PartialEq, Default)]
 pub enum Action {
+    #[default]
     #[serde(rename = "allow")]
     Allow,
     #[serde(rename = "voicemail")]
@@ -36,6 +37,10 @@ impl Action {
             Action::Allow => "allow",
             Action::VoiceMail => "voicemail",
         }
+    }
+
+    pub fn get_all_options_as_str() -> Vec<(&'static str, &'static str)> {
+        vec![("Allow", "allow"), ("Voice mail", "voicemail")]
     }
 }
 

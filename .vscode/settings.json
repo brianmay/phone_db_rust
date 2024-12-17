@@ -30,6 +30,7 @@
         "sqlx",
         "toggler",
         "virtualdom",
+        "writable",
         "zstd"
     ]
 }
