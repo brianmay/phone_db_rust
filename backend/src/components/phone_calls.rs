@@ -145,7 +145,7 @@ pub fn PhoneCallList(
 
                 }
                 Some(Err(err)) => {
-                    rsx! { "An error occurred while fetching phone calls {err}" }
+                    rsx! { "An error occurred while fetching phone calls: {err}" }
                 }
                 None => {
                     rsx! { "Loading items" }

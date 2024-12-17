@@ -275,7 +275,7 @@ pub fn ContactDetailView(props: Props<i64>) -> Element {
 
                     }
                     Some(Err(err)) => {
-                        rsx! { "An error occurred while fetching contact {err}" }
+                        rsx! { "An error occurred while fetching contact: {err}" }
                     }
                     None => {
                         rsx! { "Loading contact" }
