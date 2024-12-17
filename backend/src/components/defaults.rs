@@ -174,7 +174,7 @@ pub fn DefaultDetailView(props: Props<i64>) -> Element {
 
     let id = props.path;
 
-    let mut edit = use_signal(|| false);
+    let mut edit = use_signal(|| ActiveDialog::Idle);
 
     let mut default_resource = use_resource(move || {
         let db = props.state.db.clone();
@@ -220,28 +220,57 @@ pub fn DefaultDetailView(props: Props<i64>) -> Element {
                                 }
                             }
 
-                            if *edit.read() {
-                                EditDefaultDialog {
-                                    default_id: Operation::Edit(id),
-                                    on_save: move || {
-                                        edit.set(false);
-                                        default_resource.restart();
-                                    },
-                                    on_cancel: move || {
-                                        edit.set(false);
+                            match &*edit.read() {
+                                ActiveDialog::Deleting(id) => {
+                                    rsx!{
+                                        ConfirmDeleteDialog {
+                                            default_id: *id,
+                                            on_delete: move || {
+                                                edit.set(ActiveDialog::Idle);
+                                                default_resource.restart();
+                                            },
+                                            on_cancel: move || {
+                                                edit.set(ActiveDialog::Idle);
+                                            }
+                                        }
                                     }
                                 }
-                            } else {
-                                button {
-                                    class: "btn btn-primary",
-                                    onclick: move |_| {
-                                        edit.set(true);
-                                    },
-                                    "Edit"
+                                ActiveDialog::Editing(id) => {
+                                    rsx! {
+                                        EditDefaultDialog {
+                                            default_id: *id,
+                                            on_save: move || {
+                                                edit.set(ActiveDialog::Idle);
+                                                default_resource.restart();
+                                            },
+                                            on_cancel: move || {
+                                                edit.set(ActiveDialog::Idle);
+                                            }
+                                        }
+                                    }
+                                }
+                                ActiveDialog::Idle => {
+                                    rsx! {
+                                        div {
+                                            button {
+                                                class: "btn btn-primary",
+                                                onclick: move |_| {
+                                                    edit.set(ActiveDialog::Editing(Operation::Edit(id)));
+                                                },
+                                                "Edit"
+                                            }
+                                            button {
+                                                class: "btn btn-danger",
+                                                onclick: move |_| {
+                                                    edit.set(ActiveDialog::Deleting(id));
+                                                },
+                                                "Delete"
+                                            }
+                                        }
+                                    }
                                 }
                             }
                         }
-
                     }
                     Some(Err(err)) => {
                         rsx! { "An error occurred while fetching default {err}" }
