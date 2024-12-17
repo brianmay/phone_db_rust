@@ -9,7 +9,7 @@ pub async fn get_defaults(db: &PgPool) -> Result<DefaultList, sqlx::Error> {
         r#"
         SELECT *
         FROM defaults
-        ORDER BY defaults.id
+        ORDER BY defaults.order
         "#,
     )
     .fetch_all(db)
