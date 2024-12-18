@@ -1,12 +1,16 @@
 #![allow(non_snake_case)]
 
 use super::page::{Footer, NavBar};
-use crate::database::{
-    self,
-    defaults::{add_default, delete_default, get_defaults, update_default},
+use crate::{
+    components::app::Route,
+    database::{
+        self,
+        defaults::{add_default, delete_default, get_defaults, update_default},
+    },
 };
 use common::{Action, Default};
 use dioxus::prelude::*;
+use dioxus_router::prelude::navigator;
 use sqlx::PgPool;
 use thiserror::Error;
 
@@ -19,14 +23,18 @@ fn DefaultComponent(
     let default = default.read();
     let default_id = default.id;
 
+    let handler = move |_| {
+        let navigator = navigator();
+        navigator.push(Route::DefaultDetailView { default_id });
+    };
+
     rsx! {
         tr {
-            td { { default.order.to_string() } }
-            td { { default.regexp.clone() } }
-            td { { default.name.clone() } }
-            td { { default.action.to_string()} }
+            td { onclick: handler, { default.order.to_string() } }
+            td { onclick: handler, { default.regexp.clone() } }
+            td { onclick: handler, { default.name.clone() } }
+            td { onclick: handler, { default.action.to_string()} }
             td {
-                a { href: format!("/defaults/{}", default.id), "View" }
                 button {
                     class: "btn btn-primary",
                     onclick: move |_| {
@@ -210,18 +218,15 @@ pub fn DefaultListView() -> Element {
 
 #[component]
 pub fn DefaultDetailView(default_id: i64) -> Element {
-    println!("!!!! DefaultDetailView");
-
     let id = default_id;
 
     let mut edit = use_signal(|| ActiveDialog::Idle);
 
+    let db = use_context::<PgPool>();
     let mut default_resource = use_resource(move || {
-        let db = use_context::<PgPool>();
+        let db = db.clone();
         async move { database::defaults::get_default(&db, id).await }
     });
-
-    println!("xxxxx DefaultDetailView");
 
     rsx! {
         NavBar {}

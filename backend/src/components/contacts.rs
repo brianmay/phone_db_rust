@@ -2,11 +2,12 @@
 
 use super::page::{Footer, NavBar};
 use crate::{
-    components::phone_calls::PhoneCallList,
+    components::{app::Route, phone_calls::PhoneCallList},
     database::{self, contacts::update_contact},
 };
 use common::{Action, ContactDetails, ContactKey, Page, PhoneCallKey};
 use dioxus::prelude::*;
+use dioxus_router::prelude::navigator;
 use sqlx::PgPool;
 
 #[component]
@@ -17,14 +18,18 @@ fn ContactComponent(
     let contact = contact.read();
     let contact_id = contact.id;
 
+    let handler = move |_| {
+        let navigator = navigator();
+        navigator.push(Route::ContactDetailView { contact_id });
+    };
+
     rsx! {
         tr {
-            td { { contact.phone_number.clone() } }
-            td { { contact.name.clone() } }
-            td { { contact.action.to_string()} }
-            td { { contact.number_calls.unwrap_or(-1).to_string() } }
+            td { onclick: handler, { contact.phone_number.clone() } }
+            td { onclick: handler, { contact.name.clone() } }
+            td { onclick: handler, { contact.action.to_string()} }
+            td { onclick: handler, { contact.number_calls.unwrap_or(-1).to_string() } }
             td {
-                a { href: format!("/contacts/{}", contact.id), "View" }
                 button {
                     class: "btn btn-primary",
                     onclick: move |_| {
@@ -33,6 +38,7 @@ fn ContactComponent(
                     "Edit"
                 }
             }
+
         }
     }
 }

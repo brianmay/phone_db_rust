@@ -3,9 +3,14 @@
 use std::vec;
 
 use super::page::{Footer, NavBar};
-use crate::{components::contacts::EditContactDialog, database, datetime::datetime_to_string};
+use crate::{
+    components::{app::Route, contacts::EditContactDialog},
+    database,
+    datetime::datetime_to_string,
+};
 use common::{Page, PhoneCallDetails, PhoneCallKey};
 use dioxus::prelude::*;
+use dioxus_router::prelude::navigator;
 use sqlx::PgPool;
 use tokio::sync::broadcast;
 
@@ -18,16 +23,23 @@ fn PhoneCallComponent(
     let phone_call = phone_call.read();
     let contact_id = phone_call.contact_id;
 
+    let handler = move |_| {
+        if show_actions {
+            let navigator = navigator();
+            navigator.push(Route::ContactDetailView { contact_id });
+        }
+    };
+
     rsx! {
         tr {
-            td { { datetime_to_string(phone_call.inserted_at) } }
-            td { { phone_call.phone_number.clone() } }
-            td { { phone_call.contact_name.clone() } }
-            td { { phone_call.destination_number.clone() } }
-            td { { phone_call.action.to_string()} {"->"} { phone_call.contact_action.to_string() } }
-            td { { phone_call.number_calls.unwrap_or(-1).to_string() } }
+            td { onclick: handler, { datetime_to_string(phone_call.inserted_at) } }
+            td { onclick: handler, { phone_call.phone_number.clone() } }
+            td { onclick: handler, { phone_call.contact_name.clone() } }
+            td { onclick: handler, { phone_call.destination_number.clone() } }
+            td { onclick: handler, { phone_call.action.to_string()} {"->"} { phone_call.contact_action.to_string() } }
+            td { onclick: handler, { phone_call.number_calls.unwrap_or(-1).to_string() } }
             if show_actions {
-                td { a { href: format!("/contacts/{contact_id}"), "Contact" }
+                td {
                     button {
                         class: "btn btn-primary",
                         onclick: move |_| {
