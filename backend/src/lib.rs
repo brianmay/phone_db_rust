@@ -5,17 +5,14 @@ use std::sync::Arc;
 use arc_swap::ArcSwap;
 use axum::extract::ws::WebSocketUpgrade;
 use axum::extract::ws::{Message, WebSocket};
-use axum::extract::{FromRef, Path, State};
+use axum::extract::{FromRef, State};
 use axum::response::Html;
 use axum::Extension;
 use axum::{routing::get, Router};
-use components::contacts::{ContactDetailView, ContactListView};
-use components::defaults::{DefaultDetailView, DefaultListView};
 use dioxus::prelude::*;
 use dioxus_liveview::{interpreter_glue, LiveViewError, LiveViewSocket};
 use futures_util::{SinkExt, StreamExt};
 use handlers::assets::Manifest;
-use http::Uri;
 use oidc::Client;
 use simple_ldap::pool as ldap_pool;
 use sqlx::postgres::{PgPool, PgPoolOptions};
@@ -38,8 +35,7 @@ pub mod types;
 mod version;
 
 use common::User;
-use components::phone_calls::PhoneCallListView;
-use components::root::App;
+use components::app::App;
 
 #[derive(Debug, Clone)]
 pub struct Authentication {
@@ -105,37 +101,18 @@ fn html_page_with_content(content: &str, state: &AppState) -> Html<String> {
 }
 
 #[derive(Clone)]
-struct Props<P: Clone = ()> {
+struct Props {
     state: AppState,
     user: Arc<User>,
-    path: P,
+    // path: P,
 }
 
 trait MyRouter {
-    fn with_my_app<
-        P: Clone + serde::de::DeserializeOwned + Send + Sync + 'static + std::fmt::Debug,
-    >(
-        self,
-        route: &str,
-        f: fn(Props<P>) -> Element,
-        // state: AppState,
-        // app: impl Fn() -> dioxus_core::prelude::VirtualDom + Send + Sync + 'static,
-    ) -> Self;
+    fn with_my_app(self, route: &str, f: fn(Props) -> Element) -> Self;
 }
 
 impl MyRouter for Router<AppState> {
-    fn with_my_app<
-        P: Clone + serde::de::DeserializeOwned + Send + Sync + 'static + std::fmt::Debug,
-    >(
-        self,
-        route: &str,
-        f: fn(Props<P>) -> Element,
-        // state: AppState,
-        //app: impl Fn() -> dioxus_core::prelude::VirtualDom + Send + Sync + 'static,
-    ) -> Self {
-        // let state_clone = state.clone();
-        // let app = move || VirtualDom::new_with_props::<AppState, _>(f, state_clone.clone());
-
+    fn with_my_app(self, route: &str, f: fn(Props) -> Element) -> Self {
         let view = dioxus_liveview::LiveViewPool::new();
 
         let ws_path = if route.ends_with("/") {
@@ -143,18 +120,24 @@ impl MyRouter for Router<AppState> {
         } else {
             format!("{}/ws", route)
         };
+        let routes = [
+            "/",
+            "/phone_calls/",
+            "/phone_calls/*route",
+            "/contacts/",
+            "/contacts/*route",
+            "/defaults/",
+            "/defaults/*route",
+        ];
 
-        // let app = Arc::new(app);
-
-        self.route(
+        let route = self.route(
             &ws_path,
             get(
                 move |ws: WebSocketUpgrade,
                       State(state): State<AppState>,
-                      Path(path): Path<P>,
                       Extension(user): Extension<Arc<User>>| async move {
-                    let props = Props { state, user, path };
-                    let app = move || VirtualDom::new_with_props::<Props<P>, _>(f, props.clone());
+                    let props = Props { state, user };
+                    let app = move || VirtualDom::new_with_props::<Props, _>(f, props.clone());
                     let app = Arc::new(app);
 
                     ws.on_upgrade(move |socket| async move {
@@ -164,21 +147,19 @@ impl MyRouter for Router<AppState> {
                     })
                 },
             ),
-        )
-        .route(
-            route,
-            get(
-                move |State(state): State<AppState>, Path(_path): Path<P>, url: Uri| async move {
-                    let ws_path = url.path();
-                    let ws_path = if ws_path.ends_with("/") {
-                        format!("{}ws", ws_path)
-                    } else {
-                        format!("{}/ws", ws_path)
-                    };
+        );
+
+        let route = routes.iter().fold(route, |route, nested_route| {
+            let ws_path = ws_path.clone();
+            route.route(
+                nested_route,
+                get(move |State(state): State<AppState>| async move {
                     html_page_with_content(&interpreter_glue(&ws_path), &state)
-                },
-            ),
-        )
+                }),
+            )
+        });
+
+        route
     }
 }
 
@@ -310,11 +291,6 @@ pub async fn get_router(pool: sqlx::PgPool, ldap: Ldap) -> Router {
 
     Router::new()
         .with_my_app("/", App)
-        .with_my_app("/phone_calls", PhoneCallListView)
-        .with_my_app("/contacts", ContactListView)
-        .with_my_app("/contacts/:id", ContactDetailView)
-        .with_my_app("/defaults", DefaultListView)
-        .with_my_app("/defaults/:id", DefaultDetailView)
         .nest(
             "/api/phone_calls",
             handlers::phone_calls::router(state.clone()),

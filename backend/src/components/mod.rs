@@ -1,3 +1,4 @@
+pub mod app;
 pub mod contacts;
 pub mod defaults;
 pub mod page;

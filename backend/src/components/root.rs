@@ -4,9 +4,10 @@ use super::page::{Footer, NavBar};
 use crate::Props;
 use dioxus::prelude::*;
 
-pub fn App(props: Props) -> Element {
+pub fn App() -> Element {
     let mut num = use_signal(|| 0);
 
+    let props = use_context::<Props>();
     let user = format!("{:?}", props.user);
 
     rsx! {

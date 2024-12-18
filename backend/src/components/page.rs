@@ -2,7 +2,11 @@
 
 use crate::version;
 use dioxus::prelude::*;
+use dioxus_router::prelude::navigator;
 
+use super::app::Route;
+
+#[component]
 pub fn NavBar() -> Element {
     rsx! {
         nav {
@@ -10,7 +14,15 @@ pub fn NavBar() -> Element {
             role: "navigation",
             div {
                 class: "container-fluid",
-                a { class: "navbar-brand", href: "/", "Phone DB" }
+                a {
+                    class: "navbar-brand",
+                    // href: "/",
+                    onclick: |_| {
+                        let navigator = navigator();
+                        navigator.push(Route::Root {});
+                    },
+                    "Phone DB"
+                }
                 button {
                     class: "navbar-toggler",
                     type: "button",
@@ -27,21 +39,45 @@ pub fn NavBar() -> Element {
                         class: "navbar-nav",
                         li {
                             class: "nav-item",
-                            a { class: "nav-link", href: "/phone_calls", { "Phone Calls" } }
+                            a {
+                                class: "nav-link",
+                                // href: "/phone_calls",
+                                onclick: |_| {
+                                    let navigator = navigator();
+                                    navigator.push(Route::PhoneCallListView {});
+                                },
+                                { "Phone Calls" }
+                            }
                         }
                     }
                     div {
                         class: "navbar-nav",
                         li {
                             class: "nav-item",
-                            a { class: "nav-link", href: "/contacts", { "Contacts" } }
+                            a {
+                                class: "nav-link",
+                                // href: "/contacts",
+                                onclick: |_| {
+                                    let navigator = navigator();
+                                    navigator.push(Route::ContactListView {});
+                                },
+                                { "Contacts" }
+                            }
                         }
                     }
                     div {
                         class: "navbar-nav",
                         li {
                             class: "nav-item",
-                            a { class: "nav-link", href: "/defaults", { "Defaults" } }
+                            a {
+                                class: "nav-link",
+                                // href: "/defaults",
+                                onclick: |_| {
+                                    let navigator = navigator();
+                                    navigator.push(Route::DefaultListView {});
+                                },
+                                { "Defaults" }
+                            }
                         }
                     }
                 }
@@ -50,6 +86,7 @@ pub fn NavBar() -> Element {
     }
 }
 
+#[component]
 pub fn Footer() -> Element {
     let build_date: &str = version::BUILD_DATE.unwrap_or("unknown");
     let build_version: &str = version::VCS_REF.unwrap_or("unknown");
@@ -63,6 +100,27 @@ pub fn Footer() -> Element {
             div {
                 "Phone DB"
             }
+        }
+    }
+}
+
+#[component]
+pub fn NotFound(segments: Vec<String>) -> Element {
+    let segments = segments.join("/");
+    rsx! {
+        div {
+            NavBar {}
+
+            main {
+                role: "main",
+                class: "container",
+                h1 { "404 Not Found" }
+                p { "The page you are looking for does not exist." }
+                p { "Segments: {segments}" }
+                p { "Please ask a friendly penguin for help." }
+            }
+
+            Footer {}
         }
     }
 }

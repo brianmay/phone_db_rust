@@ -4,7 +4,6 @@ use super::page::{Footer, NavBar};
 use crate::{
     components::phone_calls::PhoneCallList,
     database::{self, contacts::update_contact},
-    Props,
 };
 use common::{Action, ContactDetails, ContactKey, Page, PhoneCallKey};
 use dioxus::prelude::*;
@@ -38,9 +37,7 @@ fn ContactComponent(
     }
 }
 
-pub fn ContactListView(props: Props) -> Element {
-    use_context_provider(|| props.state.db.clone());
-
+pub fn ContactListView() -> Element {
     let mut request = use_signal(|| common::PageRequest::<ContactKey> {
         after_key: None,
         search: None,
@@ -49,7 +46,7 @@ pub fn ContactListView(props: Props) -> Element {
     let mut contacts =
         use_signal(|| Option::<Result<Page<ContactDetails, ContactKey>, sqlx::Error>>::None);
 
-    let db = props.state.db.clone();
+    let db = use_context::<PgPool>();
     let _resource = use_resource(move || {
         let db = db.clone();
         async move {
@@ -179,21 +176,21 @@ pub fn ContactListView(props: Props) -> Element {
     }
 }
 
-pub fn ContactDetailView(props: Props<i64>) -> Element {
+#[component]
+pub fn ContactDetailView(contact_id: i64) -> Element {
     let mut phone_calls = use_signal(|| None);
     let mut request = use_signal(|| common::PageRequest::<PhoneCallKey> {
         after_key: None,
         search: None,
     });
 
-    use_context_provider(|| props.state.db.clone());
-
-    let id = props.path;
+    let id = contact_id;
 
     let mut edit = use_signal(|| false);
 
+    let db = use_context::<PgPool>();
     let mut contact_resource = use_resource(move || {
-        let db = props.state.db.clone();
+        let db = db.clone();
         async move { database::contacts::get_contact(&db, id).await }
     });
 
@@ -359,8 +356,6 @@ pub fn EditContactDialog(
             }
         },
     };
-
-    println!("action: {:?}", action.read().as_str());
 
     rsx! {
         div {

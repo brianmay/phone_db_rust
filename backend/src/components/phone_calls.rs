@@ -3,9 +3,7 @@
 use std::vec;
 
 use super::page::{Footer, NavBar};
-use crate::{
-    components::contacts::EditContactDialog, database, datetime::datetime_to_string, Props,
-};
+use crate::{components::contacts::EditContactDialog, database, datetime::datetime_to_string};
 use common::{Page, PhoneCallDetails, PhoneCallKey};
 use dioxus::prelude::*;
 use sqlx::PgPool;
@@ -160,7 +158,8 @@ pub fn PhoneCallList(
     }
 }
 
-pub fn PhoneCallListView(props: Props) -> Element {
+#[component]
+pub fn PhoneCallListView() -> Element {
     let mut phone_calls = use_signal(|| None);
     let mut request = use_signal(|| common::PageRequest::<PhoneCallKey> {
         after_key: None,
@@ -168,9 +167,6 @@ pub fn PhoneCallListView(props: Props) -> Element {
     });
 
     let mut edit_contact = use_signal(|| None);
-
-    use_context_provider(|| props.state.db.clone());
-    use_context_provider(|| props.state.incoming_call.clone());
 
     let mut new_phone_calls_signal = use_signal(std::vec::Vec::new);
 

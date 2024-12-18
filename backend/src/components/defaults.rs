@@ -1,12 +1,9 @@
 #![allow(non_snake_case)]
 
 use super::page::{Footer, NavBar};
-use crate::{
-    database::{
-        self,
-        defaults::{add_default, delete_default, get_defaults, update_default},
-    },
-    Props,
+use crate::database::{
+    self,
+    defaults::{add_default, delete_default, get_defaults, update_default},
 };
 use common::{Action, Default};
 use dioxus::prelude::*;
@@ -62,9 +59,8 @@ enum ActiveDialog {
     Idle,
 }
 
-pub fn DefaultListView(props: Props) -> Element {
-    use_context_provider(|| props.state.db.clone());
-
+#[component]
+pub fn DefaultListView() -> Element {
     let mut defaults = use_resource(|| async {
         let db = use_context::<PgPool>();
         get_defaults(&db).await
@@ -212,17 +208,20 @@ pub fn DefaultListView(props: Props) -> Element {
     }
 }
 
-pub fn DefaultDetailView(props: Props<i64>) -> Element {
-    use_context_provider(|| props.state.db.clone());
+#[component]
+pub fn DefaultDetailView(default_id: i64) -> Element {
+    println!("!!!! DefaultDetailView");
 
-    let id = props.path;
+    let id = default_id;
 
     let mut edit = use_signal(|| ActiveDialog::Idle);
 
     let mut default_resource = use_resource(move || {
-        let db = props.state.db.clone();
+        let db = use_context::<PgPool>();
         async move { database::defaults::get_default(&db, id).await }
     });
+
+    println!("xxxxx DefaultDetailView");
 
     rsx! {
         NavBar {}
