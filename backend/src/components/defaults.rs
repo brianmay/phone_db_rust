@@ -1,6 +1,8 @@
 #![allow(non_snake_case)]
 
+use super::common::{InputString, ValidationError};
 use super::page::{Footer, NavBar};
+use crate::components::common::InputSelect;
 use crate::{
     components::app::Route,
     database::{
@@ -338,10 +340,6 @@ enum Saving {
     Finished(Result<(), EditError>),
 }
 
-#[derive(Error, Debug, PartialEq, Eq, Clone)]
-#[error("{0}")]
-struct ValidationError(String);
-
 #[derive(Error, Debug)]
 enum EditError {
     #[error("{0}")]
@@ -415,18 +413,6 @@ async fn save(
     Ok(())
 }
 
-fn get_input_classes(is_valid: bool, changed: bool) -> &'static str {
-    if is_valid {
-        return "form-control is-valid";
-    }
-
-    if !changed {
-        return "form-control";
-    }
-
-    "form-control is-invalid"
-}
-
 #[component]
 fn EditDefaultDialog(
     default_id: Operation,
@@ -443,10 +429,10 @@ fn EditDefaultDialog(
     let validate_name = use_memo(move || validate_name(&name.read_unchecked()));
     let validate_action = use_memo(move || validate_action(&action.read_unchecked()));
 
-    let mut changed_order = use_signal(|| false);
-    let mut changed_regexp = use_signal(|| false);
-    let mut changed_name = use_signal(|| false);
-    let mut changed_action = use_signal(|| false);
+    let changed_order = use_signal(|| false);
+    let changed_regexp = use_signal(|| false);
+    let changed_name = use_signal(|| false);
+    let changed_action = use_signal(|| false);
 
     let default_resource = use_resource(move || async move {
         let db = use_context::<PgPool>();
@@ -563,129 +549,42 @@ fn EditDefaultDialog(
                             novalidate: true,
                             class: "needs-validation",
 
-                            div {
-                                class: "form-group",
-                                label {
-                                    for: "order",
-                                    "Order"
-                                }
-                                input {
-                                    type: "text",
-                                    class: get_input_classes(validate_order().is_ok(), changed_order()),
-                                    id: "order",
-                                    placeholder: "Enter order",
-                                    value: "{order}",
-                                    disabled: disabled,
-                                    oninput: move |e| {
-                                        changed_order.set(true);
-                                        order.set(e.value());
-                                    }
-                                }
-                                if let Err(err) = validate_order() {
-                                    div {
-                                        class: "invalid-feedback",
-                                        "{err}"
-                                    }
-                                } else {
-                                    div {
-                                        class: "valid-feedback",
-                                        "Looks good!"
-                                    }
-                                }
+
+                            InputString {
+                                id: "order",
+                                label: "Order",
+                                value: order,
+                                validate: validate_order,
+                                changed: changed_order,
+                                disabled: disabled,
                             }
-                            div {
-                                class: "form-group",
-                                label {
-                                    for: "regexp",
-                                    "RegExp"
-                                }
-                                input {
-                                    type: "text",
-                                    class: get_input_classes(validate_regexp().is_ok(), changed_regexp()),
-                                    id: "regexp",
-                                    placeholder: "Enter RegExp",
-                                    value: "{regexp}",
-                                    disabled: disabled,
-                                    oninput: move |e| {
-                                        changed_regexp.set(true);
-                                        regexp.set(e.value());
-                                    }
-                                }
-                                if let Err(err) = validate_regexp() {
-                                    div {
-                                        class: "invalid-feedback",
-                                        "{err}"
-                                    }
-                                } else {
-                                    div {
-                                        class: "valid-feedback",
-                                        "Looks good!"
-                                    }
-                                }
+
+                            InputString {
+                                id: "regexp",
+                                label: "RegExp",
+                                value: regexp,
+                                validate: validate_regexp,
+                                changed: changed_regexp,
+                                disabled: disabled,
                             }
-                            div {
-                                class: "form-group",
-                                label {
-                                    for: "name",
-                                    "Name"
-                                }
-                                input {
-                                    type: "text",
-                                    class: get_input_classes(validate_name().is_ok(), changed_name()),
-                                    id: "name",
-                                    placeholder: "Enter name",
-                                    value: "{name}",
-                                    disabled: disabled,
-                                    oninput: move |e| {
-                                        changed_name.set(true);
-                                        name.set(e.value());
-                                    }
-                                }
-                                if let Err(err) = validate_name() {
-                                    div {
-                                        class: "invalid-feedback",
-                                        "{err}"
-                                    }
-                                } else {
-                                    div {
-                                        class: "valid-feedback",
-                                        "Looks good!"
-                                    }
-                                }
+
+                            InputString {
+                                id: "name",
+                                label: "Name",
+                                value: name,
+                                validate: validate_name,
+                                changed: changed_name,
+                                disabled: disabled,
                             }
-                            div {
-                                class: "form-group",
-                                label {
-                                    for: "action",
-                                    "Action"
-                                }
-                                select {
-                                    class: get_input_classes(validate_action().is_ok(), changed_action()),
-                                    id: "action",
-                                    disabled: disabled,
-                                    value: "{action}",
-                                    oninput: move |e| {
-                                        changed_action.set(true);
-                                        action.set(e.value());
-                                    },
-                                    for op in Action::get_all_options_as_str() {
-                                        option {
-                                            value: "{op.1}",
-                                             "{op.0}"
-                                        }
-                                    }
-                                }
-                                if let Err(err) = validate_action() {
-                                    div {
-                                        class: "invalid-feedback",
-                                        "{err}"
-                                    }
-                                } else {
-                                    div {
-                                        class: "valid-feedback",
-                                        "Looks good!"
-                                    }
-                                }
+
+                            InputSelect {
+                                id: "action",
+                                label: "Action",
+                                value: action,
+                                validate: validate_action,
+                                changed: changed_action,
+                                disabled: disabled,
+                                options: Action::get_all_options_as_str(),
                             }
                         }
                     }

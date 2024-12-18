@@ -1,4 +1,5 @@
 pub mod app;
+pub mod common;
 pub mod contacts;
 pub mod defaults;
 pub mod page;
