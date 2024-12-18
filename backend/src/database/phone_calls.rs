@@ -75,7 +75,7 @@ pub async fn get_phone_calls(
             builder.push("WHERE ");
         }
         builder
-            .push("phone_number ILIKE ")
+            .push("phone_calls.phone_number ILIKE ")
             .push_bind(search.clone())
             .push(" OR name ILIKE ")
             .push_bind(search.clone())
@@ -112,4 +112,21 @@ pub async fn get_phone_calls(
         .collect::<Vec<_>>()
         .pipe(|x| list_to_page(x, limit))
         .pipe(Ok)
+}
+
+pub async fn get_phone_call(db: &PgPool, id: i64) -> Result<PhoneCallDetails, sqlx::Error> {
+    let result = sqlx::query_as!(
+        PhoneCallDetails,
+        r#"
+        SELECT phone_calls.*, contacts.name as contact_name, contacts.phone_number as contact_phone_number, contacts.action as contact_action, contacts.comments as contact_comments, (SELECT COUNT(*) FROM phone_calls WHERE contact_id = contacts.id) as number_calls
+        FROM phone_calls
+        INNER JOIN contacts ON contacts.id = phone_calls.contact_id
+        WHERE phone_calls.id = $1
+        "#,
+        id
+    )
+    .fetch_one(db)
+    .await?;
+
+    Ok(result)
 }

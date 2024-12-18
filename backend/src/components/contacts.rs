@@ -262,6 +262,9 @@ pub fn ContactDetailView(props: Props<i64>) -> Element {
                                 }
                             }
 
+                            h2 {
+                                "Phone Calls"
+                            }
                             PhoneCallList {
                                 contact_id: Some(id),
                                 phone_calls: phone_calls,
@@ -357,6 +360,8 @@ pub fn EditContactDialog(
         },
     };
 
+    println!("action: {:?}", action.read().as_str());
+
     rsx! {
         div {
             class: "modal fade show d-block",
@@ -422,7 +427,7 @@ pub fn EditContactDialog(
                                     class: "form-control",
                                     id: "action",
                                     disabled: disabled,
-                                    value: "{action}",
+                                    value: "{action().as_str()}",
                                     oninput: move |e| {
                                         action.set(e.value().into());
                                     },

@@ -22,6 +22,7 @@ use sqlx::postgres::{PgPool, PgPoolOptions};
 use tap::Pipe;
 use time::Duration;
 use tokio::net::TcpListener;
+use tokio::sync::broadcast;
 use tower_sessions::cookie::SameSite;
 use tower_sessions::{ExpiredDeletion, Expiry, SessionManagerLayer};
 use tower_sessions_sqlx_store_chrono::PostgresStore;
@@ -54,6 +55,7 @@ pub struct AppState {
     ldap: Ldap,
     static_path: Arc<PathBuf>,
     manifest: Arc<Manifest>,
+    incoming_call: broadcast::Sender<common::PhoneCallDetails>,
 }
 
 #[derive(Clone)]
@@ -294,6 +296,8 @@ pub async fn get_router(pool: sqlx::PgPool, ldap: Ldap) -> Router {
         Authentication { username, password }.pipe(Arc::new)
     };
 
+    let (incoming_call, _) = broadcast::channel(2);
+
     let state = AppState {
         db: pool,
         oidc_client,
@@ -301,6 +305,7 @@ pub async fn get_router(pool: sqlx::PgPool, ldap: Ldap) -> Router {
         ldap,
         static_path: Arc::new(static_path),
         manifest: Arc::new(manifest),
+        incoming_call,
     };
 
     Router::new()
@@ -365,6 +370,7 @@ pub async fn get_test_router(pool: sqlx::PgPool) -> Router {
         .pipe(Arc::new)
     };
 
+    let (incoming_call, _) = broadcast::channel(2);
     let state = AppState {
         db: pool,
         oidc_client: Arc::new(ArcSwap::new(Arc::new(None))),
@@ -372,6 +378,7 @@ pub async fn get_test_router(pool: sqlx::PgPool) -> Router {
         ldap,
         static_path: Arc::new(static_path),
         manifest: Arc::new(manifest),
+        incoming_call,
     };
 
     Router::new()

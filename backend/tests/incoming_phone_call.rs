@@ -1,6 +1,6 @@
 use axum_extra::headers::{authorization::Credentials, Authorization};
 use axum_test::TestServer;
-use common::{IncomingPhoneCallRequest, IncomingPhoneCallResponse, Response};
+use common::{IncomingPhoneCallRequest, PhoneCallDetails, Response};
 use sqlx::PgPool;
 
 #[sqlx::test]
@@ -26,12 +26,12 @@ async fn test(db: PgPool) {
 
     // Assertions.
     response.assert_status_ok();
-    let response = response.json::<Response<IncomingPhoneCallResponse>>();
+    let response = response.json::<Response<PhoneCallDetails>>();
 
     let Response::Success { data: response } = response else {
         panic!("Expected a success response, got: {:?}", response);
     };
 
-    assert_eq!(response.name, None);
+    assert_eq!(response.contact_name, None);
     assert_eq!(response.action, common::Action::Allow);
 }

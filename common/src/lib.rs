@@ -34,7 +34,7 @@ pub enum Action {
 }
 
 impl Action {
-    // for db conversions
+    // for db conversions and forms
     pub fn as_str(&self) -> &str {
         match self {
             Action::Allow => "allow",
@@ -167,12 +167,6 @@ pub struct ContactUpdateRequest {
 pub struct IncomingPhoneCallRequest {
     pub phone_number: String,
     pub destination_number: String,
-}
-
-#[derive(Debug, Deserialize, Serialize)]
-pub struct IncomingPhoneCallResponse {
-    pub name: Option<String>,
-    pub action: Action,
 }
 
 #[derive(Debug, Deserialize, Serialize)]

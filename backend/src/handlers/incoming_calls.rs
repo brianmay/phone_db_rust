@@ -9,6 +9,7 @@ use axum_extra::{
 };
 use sqlx::postgres::PgPool;
 use tap::Pipe;
+use tokio::sync::broadcast;
 
 use crate::errors::Error;
 use crate::errors::{Response, Result};
@@ -18,7 +19,7 @@ use crate::Authentication;
 use crate::Ldap;
 use crate::{database, ldap};
 
-use common::{Action, IncomingPhoneCallRequest, IncomingPhoneCallResponse};
+use common::{Action, IncomingPhoneCallRequest, PhoneCallDetails};
 
 pub fn router(state: AppState) -> Router<AppState> {
     Router::new()
@@ -31,9 +32,10 @@ async fn post_handler(
     State(authentication): State<Arc<Authentication>>,
     State(db): State<PgPool>,
     State(ldap): State<Ldap>,
+    State(tx): State<broadcast::Sender<PhoneCallDetails>>,
     TypedHeader(Authorization(creds)): TypedHeader<Authorization<Basic>>,
     Json(request): Json<IncomingPhoneCallRequest>,
-) -> Result<IncomingPhoneCallResponse> {
+) -> Result<PhoneCallDetails> {
     let now = chrono::Utc::now();
 
     if creds.username() != authentication.username || creds.password() != authentication.password {
@@ -79,26 +81,27 @@ async fn post_handler(
         }
     };
 
-    sqlx::query!(
+    let phone_call_id = sqlx::query_scalar!(
         r#"
-        INSERT INTO phone_calls (action, contact_id, destination_number, inserted_at, updated_at)
-        VALUES ($1, $2, $3, $4, $4)
+        INSERT INTO phone_calls (action, contact_id, phone_number ,destination_number, inserted_at, updated_at)
+        VALUES ($1, $2, $3, $4, $5, $5)
         RETURNING id
         "#,
         contact.action.as_str(),
         contact.id,
+        request.phone_number,
         request.destination_number,
         now
     )
     .fetch_one(&db)
     .await?;
 
+    let phone_call = database::phone_calls::get_phone_call(&db, phone_call_id).await?;
+
+    // This will only fail if no one is listening but we don't care.
+    _ = tx.send(phone_call.clone());
+
     ldap::update_contact(&contact, &ldap).await?;
 
-    IncomingPhoneCallResponse {
-        name: contact.name,
-        action: contact.action,
-    }
-    .pipe(Response::new)
-    .pipe(Ok)
+    phone_call.pipe(Response::new).pipe(Ok)
 }
