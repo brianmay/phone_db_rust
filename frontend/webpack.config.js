@@ -1,7 +1,9 @@
 const path = require("path");
 const CopyPlugin = require("copy-webpack-plugin");
 const HtmlWebpackPlugin = require("html-webpack-plugin");
-const { WebpackManifestPlugin } = require("webpack-manifest-plugin");
+const {
+  WebpackManifestPlugin
+} = require("webpack-manifest-plugin");
 
 const dist = path.resolve(__dirname, "dist");
 
@@ -30,7 +32,7 @@ module.exports = {
       meta: {
         viewport: "width=device-width, initial-scale=1, shrink-to-fit=no",
       },
-      publicPath: "/",
+      publicPath: "/assets/",
       chunks: ["index"],
       template: "index.html",
     }),
@@ -40,30 +42,26 @@ module.exports = {
     }),
   ],
   module: {
-    rules: [
-      {
-        test: /\.(css)|(scss)$/,
-        use: [
-          {
-            loader: "style-loader",
-          },
-          {
-            loader: "css-loader",
-          },
-          {
-            loader: "postcss-loader",
-            options: {
-              postcssOptions: {
-                plugins: () => [require("autoprefixer")],
-              },
+    rules: [{
+      test: /\.(css)|(scss)$/,
+      use: [{
+          loader: "style-loader",
+        },
+        {
+          loader: "css-loader",
+        },
+        {
+          loader: "postcss-loader",
+          options: {
+            postcssOptions: {
+              plugins: () => [require("autoprefixer")],
             },
           },
-          {
-            loader: "sass-loader",
-          },
-        ],
-      },
-    ],
+        },
+        {
+          loader: "sass-loader",
+        },
+      ],
+    }, ],
   },
 };
-

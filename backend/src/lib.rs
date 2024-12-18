@@ -20,6 +20,7 @@ use tap::Pipe;
 use time::Duration;
 use tokio::net::TcpListener;
 use tokio::sync::broadcast;
+use tower_http::services::ServeDir;
 use tower_sessions::cookie::SameSite;
 use tower_sessions::{ExpiredDeletion, Expiry, SessionManagerLayer};
 use tower_sessions_sqlx_store_chrono::PostgresStore;
@@ -296,6 +297,7 @@ pub async fn get_router(pool: sqlx::PgPool, ldap: Ldap) -> Router {
             handlers::phone_calls::router(state.clone()),
         )
         .nest("/api/contacts", handlers::contacts::router(state.clone()))
+        .nest_service("/assets", ServeDir::new(&*state.static_path))
         .fallback(handlers::assets::fallback_handler)
         .layer(axum::middleware::from_fn_with_state(
             state.clone(),

@@ -64,20 +64,13 @@ impl Manifest {
     }
 
     pub fn get_url(&self, key: &str) -> String {
-        format!("/{}", self.get_internal(key))
+        format!("/assets/{}", self.get_internal(key))
     }
 }
-
-const ASSET_SUFFIXES: [&str; 9] = [
-    ".js", ".css", ".png", ".jpg", ".jpeg", ".svg", ".ico", ".woff2", "*.json",
-];
 
 #[axum::debug_handler(state = AppState)]
 pub async fn fallback_handler(
     user: Option<Extension<Arc<User>>>,
-    State(static_path): State<Arc<PathBuf>>,
-    // State(oidc_client): State<Arc<ArcSwap<Option<Client>>>>,
-    // State(http_config): State<Arc<Config>>,
     State(manifest): State<Arc<Manifest>>,
     req: Request<Body>,
 ) -> Result<Response, MyError> {
@@ -85,26 +78,11 @@ pub async fn fallback_handler(
         return Err(MyError::MethodNotAllowed);
     }
 
-    let asset_file = {
-        let path = req.uri().path();
-        ASSET_SUFFIXES.iter().any(|suffix| path.ends_with(suffix))
-    };
-
-    if !asset_file && user.is_none() {
+    if user.is_none() {
         return Err(MyError::NotFound);
     }
 
-    match ServeDir::new(&*static_path).oneshot(req).await {
-        Ok(response) => {
-            let status = response.status();
-            match status {
-                // If this is an asset file, then don't redirect to index.html
-                StatusCode::NOT_FOUND if !asset_file => serve_index_html(&manifest).await,
-                _ => Ok(response.map(Body::new)),
-            }
-        }
-        Err(err) => unreachable!("ServeDir error: {:?}", err),
-    }
+    serve_index_html(&manifest).await
 }
 
 async fn serve_index_html(manifest: &Manifest) -> Result<Response, MyError> {
