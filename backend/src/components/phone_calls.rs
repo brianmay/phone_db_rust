@@ -129,7 +129,7 @@ pub fn PhoneCallList(
                                     on_edit_contact: move |contact_id| {
                                         on_edit_contact.call(contact_id);
                                     }
-                                    }
+                                }
                             }
                         }
                     }
@@ -225,9 +225,8 @@ pub fn PhoneCallListView(props: Props) -> Element {
                                         key: phone_call.id,
                                         show_actions: true,
                                         phone_call: phone_call.clone(),
-                                        on_edit_contact: move |_contact_id| {
-                                            edit_contact.set(None);
-                                            // edit_contact.set(Some(phone_call.contact_id));
+                                        on_edit_contact: move |contact_id| {
+                                            edit_contact.set(Some(contact_id));
                                         }
                                     }
                                 }
