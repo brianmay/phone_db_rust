@@ -11,12 +11,9 @@ use axum::{
     response::{Html, IntoResponse, Response},
     Extension,
 };
-use http::StatusCode;
 use serde::Deserialize;
 use thiserror::Error;
 use tokio::fs;
-use tower::util::ServiceExt;
-use tower_http::services::ServeDir;
 use tracing::error;
 
 use crate::{errors::Error as MyError, AppState};
