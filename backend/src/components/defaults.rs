@@ -347,7 +347,7 @@ async fn save(
             name,
             action,
         };
-        update_default(&db, &request).await?;
+        update_default(&db, request).await?;
     } else {
         let request = common::DefaultAddRequest {
             order,
@@ -355,7 +355,7 @@ async fn save(
             name,
             action,
         };
-        add_default(&db, &request).await?;
+        add_default(&db, request).await?;
     }
 
     Ok(())

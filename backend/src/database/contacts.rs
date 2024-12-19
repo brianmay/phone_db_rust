@@ -112,10 +112,29 @@ pub async fn get_contact(db: &PgPool, id: i64) -> Result<ContactDetails, sqlx::E
     Ok(result)
 }
 
+pub async fn get_contact_by_phone_number(
+    db: &PgPool,
+    phone_number: &str,
+) -> Result<Option<ContactDetails>, sqlx::Error> {
+    let result = sqlx::query_as!(
+        ContactDetails,
+        r#"
+        SELECT *, (SELECT COUNT(*) FROM phone_calls WHERE contact_id = contacts.id) as number_calls
+        FROM contacts
+        WHERE phone_number = $1
+        "#,
+        phone_number
+    )
+    .fetch_optional(db)
+    .await?;
+
+    Ok(result)
+}
+
 pub async fn update_contact(
     db: &PgPool,
-    request: &ContactUpdateRequest,
-) -> Result<(), sqlx::Error> {
+    request: ContactUpdateRequest,
+) -> Result<ContactDetails, sqlx::Error> {
     let time = chrono::Utc::now();
     let ContactUpdateRequest {
         id,
@@ -131,23 +150,26 @@ pub async fn update_contact(
         WHERE id = $1
         "#,
         id,
-        *phone_number,
-        *name,
+        phone_number,
+        name,
         action.as_str(),
-        *comments,
+        comments,
         time
     )
     .execute(db)
     .await?;
 
     if result.rows_affected() == 0 {
-        Err(sqlx::Error::RowNotFound)?;
+        Err(sqlx::Error::RowNotFound)
+    } else {
+        get_contact(db, id).await
     }
-
-    Ok(())
 }
 
-pub async fn add_contact(db: &PgPool, request: &ContactAddRequest) -> Result<(), sqlx::Error> {
+pub async fn add_contact(
+    db: &PgPool,
+    request: ContactAddRequest,
+) -> Result<ContactDetails, sqlx::Error> {
     let time = chrono::Utc::now();
     let ContactAddRequest {
         phone_number,
@@ -156,25 +178,31 @@ pub async fn add_contact(db: &PgPool, request: &ContactAddRequest) -> Result<(),
         comments,
     } = request;
 
-    let result = sqlx::query!(
+    let id = sqlx::query_scalar!(
         r#"
         INSERT INTO contacts (phone_number, name, action, comments, inserted_at, updated_at)
         VALUES ($1, $2, $3, $4, $5, $5)
+        RETURNING id
         "#,
-        *phone_number,
-        *name,
+        phone_number,
+        name,
         action.as_str(),
-        *comments,
+        comments,
         time
     )
-    .execute(db)
+    .fetch_one(db)
     .await?;
 
-    if result.rows_affected() == 0 {
-        Err(sqlx::Error::RowNotFound)?;
-    }
-
-    Ok(())
+    Ok(ContactDetails {
+        id,
+        phone_number,
+        name,
+        action,
+        comments,
+        inserted_at: time,
+        updated_at: time,
+        number_calls: Some(0),
+    })
 }
 
 pub async fn delete_contact(db: &PgPool, id: i64) -> Result<(), sqlx::Error> {

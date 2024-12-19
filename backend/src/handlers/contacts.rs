@@ -34,9 +34,9 @@ async fn get_contacts(
 async fn post_contacts(
     State(db): State<PgPool>,
     Json(request): Json<ContactUpdateRequest>,
-) -> Result<()> {
+) -> Result<ContactDetails> {
     let id = request.id;
-    database::contacts::update_contact(&db, &request)
+    database::contacts::update_contact(&db, request)
         .await
         .map_err(|err| match err {
             sqlx::Error::RowNotFound => errors::Error::ObjectNotFound("Contact".to_string(), id),

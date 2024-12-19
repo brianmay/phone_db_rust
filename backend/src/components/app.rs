@@ -39,6 +39,7 @@ pub enum Route {
 
 pub fn App(props: Props) -> Element {
     use_context_provider(|| props.state.db.clone());
+    use_context_provider(|| props.state.ldap.clone());
     use_context_provider(|| props.state.incoming_call.clone());
     use_context_provider(|| props);
 

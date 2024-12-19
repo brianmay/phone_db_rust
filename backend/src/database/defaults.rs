@@ -36,8 +36,8 @@ pub async fn get_default(db: &PgPool, id: i64) -> Result<Default, sqlx::Error> {
 
 pub async fn update_default(
     db: &PgPool,
-    request: &DefaultUpdateRequest,
-) -> Result<(), sqlx::Error> {
+    request: DefaultUpdateRequest,
+) -> Result<Default, sqlx::Error> {
     let time = chrono::Utc::now();
     let DefaultUpdateRequest {
         id,
@@ -63,13 +63,13 @@ pub async fn update_default(
     .await?;
 
     if result.rows_affected() == 0 {
-        Err(sqlx::Error::RowNotFound)?;
+        Err(sqlx::Error::RowNotFound)
+    } else {
+        get_default(db, id).await
     }
-
-    Ok(())
 }
 
-pub async fn add_default(db: &PgPool, request: &DefaultAddRequest) -> Result<(), sqlx::Error> {
+pub async fn add_default(db: &PgPool, request: DefaultAddRequest) -> Result<Default, sqlx::Error> {
     let time = chrono::Utc::now();
     let DefaultAddRequest {
         order,
@@ -78,10 +78,11 @@ pub async fn add_default(db: &PgPool, request: &DefaultAddRequest) -> Result<(),
         action,
     } = request;
 
-    sqlx::query!(
+    let id = sqlx::query_scalar!(
         r#"
         INSERT INTO defaults ("order", regexp, name, action, inserted_at, updated_at)
         VALUES ($1, $2, $3, $4, $5, $6)
+        RETURNING id
         "#,
         order,
         regexp,
@@ -90,10 +91,18 @@ pub async fn add_default(db: &PgPool, request: &DefaultAddRequest) -> Result<(),
         time,
         time
     )
-    .execute(db)
+    .fetch_one(db)
     .await?;
 
-    Ok(())
+    Ok(Default {
+        id,
+        order,
+        regexp,
+        name,
+        action,
+        inserted_at: time,
+        updated_at: time,
+    })
 }
 
 pub async fn delete_default(db: &PgPool, id: i64) -> Result<(), sqlx::Error> {

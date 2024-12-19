@@ -155,7 +155,7 @@ pub struct ContactKey {
     pub id: i64,
 }
 
-#[derive(Debug, Deserialize, Serialize)]
+#[derive(Debug, Deserialize, Serialize, Clone)]
 pub struct ContactUpdateRequest {
     pub id: i64,
     pub phone_number: String,

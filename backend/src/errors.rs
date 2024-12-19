@@ -37,13 +37,7 @@ pub enum Error {
     Session(#[from] tower_sessions_core::session::Error),
 
     #[error("LDAP error: {0}")]
-    Ldap(#[from] simple_ldap::Error),
-
-    #[error("LDAP3 error: {0}")]
-    Ldap3(#[from] simple_ldap::ldap3::LdapError),
-
-    #[error("Too many LDAP results")]
-    LdapTooManyResults,
+    Ldap(#[from] crate::ldap::Error),
 
     #[error("Method not allowed")]
     MethodNotAllowed,
@@ -105,20 +99,6 @@ impl IntoResponse for Error {
             }
             Self::Ldap(error) => {
                 error!("LDAP error: {error}");
-                let response = MyResponse::<()>::Error {
-                    message: "internal error".to_string(),
-                };
-                (StatusCode::INTERNAL_SERVER_ERROR, Json(response)).into_response()
-            }
-            Self::Ldap3(error) => {
-                error!("LDAP3 error: {error}");
-                let response = MyResponse::<()>::Error {
-                    message: "internal error".to_string(),
-                };
-                (StatusCode::INTERNAL_SERVER_ERROR, Json(response)).into_response()
-            }
-            Self::LdapTooManyResults => {
-                error!("LDAP too many results");
                 let response = MyResponse::<()>::Error {
                     message: "internal error".to_string(),
                 };

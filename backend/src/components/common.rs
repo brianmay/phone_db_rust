@@ -31,6 +31,9 @@ pub enum EditError {
     Sqlx(#[from] sqlx::Error),
 
     #[error("{0}")]
+    Ldap(#[from] crate::ldap::Error),
+
+    #[error("{0}")]
     Validation(#[from] ValidationError),
 }
 

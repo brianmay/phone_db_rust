@@ -16,6 +16,8 @@ use crate::{
         self,
         contacts::{add_contact, delete_contact, update_contact},
     },
+    ldap::{delete_ldap_contact_from_phone_number, update_ldap_contact_from_contact},
+    Ldap,
 };
 use common::{Action, ContactDetails, ContactKey, Page, PhoneCallKey};
 use dioxus::prelude::*;
@@ -209,22 +211,24 @@ pub fn ContactListView() -> Element {
                 }
             }
 
-            if let ActiveDialog::Deleting(contact_id) = *edit_contact.read() {
-                ConfirmDeleteDialog {
-                    contact_id: contact_id,
-                    on_cancel: move || {
-                        edit_contact.set(ActiveDialog::Idle);
-                    },
-                    on_delete: move || {
-                        edit_contact.set(ActiveDialog::Idle);
-                        contacts.set(None);
-                        let mut writable = request.write();
-                        writable.after_key = None;
-                        let navigator = navigator();
-                        navigator.push(Route::ContactListView{});
-                    }
-                }
-            }
+            // FIXME: Need the phone number to pass to the delete function
+            // if let ActiveDialog::Deleting(contact_id) = *edit_contact.read() {
+                // ConfirmDeleteDialog {
+                //     contact_id: contact_id,
+                //     phone_number:
+                //     on_cancel: move || {
+                //         edit_contact.set(ActiveDialog::Idle);
+                //     },
+                //     on_delete: move || {
+                //         edit_contact.set(ActiveDialog::Idle);
+                //         contacts.set(None);
+                //         let mut writable = request.write();
+                //         writable.after_key = None;
+                //         let navigator = navigator();
+                //         navigator.push(Route::ContactListView{});
+                //     }
+                // }
+            // }
         }
 
         Footer {}
@@ -293,6 +297,7 @@ pub fn ContactDetailView(contact_id: i64) -> Element {
                                     rsx!{
                                         ConfirmDeleteDialog {
                                             contact_id: *id,
+                                            phone_number: contact.phone_number.clone(),
                                             on_delete: move || {
                                                 edit.set(ActiveDialog::Idle);
                                                 contact_resource.restart();
@@ -381,27 +386,30 @@ async fn save(
     let comments = comments?;
 
     let db = use_context::<PgPool>();
+    let ldap = use_context::<Ldap>();
 
-    if let Operation::Edit(id) = contact_id {
+    let contact = if let Operation::Edit(id) = contact_id {
         let request = common::ContactUpdateRequest {
             id,
-            phone_number,
+            phone_number: phone_number.clone(),
             name: Some(name),
             action,
             comments,
         };
 
-        update_contact(&db, &request).await?;
+        update_contact(&db, request).await?
     } else {
         let request = common::ContactAddRequest {
-            phone_number,
+            phone_number: phone_number.clone(),
             name: Some(name),
             action,
             comments,
         };
 
-        add_contact(&db, &request).await?;
-    }
+        add_contact(&db, request).await?
+    };
+
+    update_ldap_contact_from_contact(&phone_number, &contact, &ldap).await?;
 
     Ok(())
 }
@@ -623,6 +631,7 @@ pub fn EditContactDialog(
 #[component]
 fn ConfirmDeleteDialog(
     contact_id: i64,
+    phone_number: String,
     on_delete: EventHandler<()>,
     on_cancel: EventHandler<()>,
 ) -> Element {
@@ -703,10 +712,18 @@ fn ConfirmDeleteDialog(
                             disabled: disabled,
                             onclick: move |_event| {
                                 saving_resource.set(Saving::Yes);
+                                let phone_number = phone_number.clone();
 
                                 spawn(async move {
                                     let db = use_context::<PgPool>();
+                                    let ldap = use_context::<Ldap>();
+
                                     let result = delete_contact(&db, contact_id).await.map_err(|err| err.into());
+                                    let result = if result.is_ok() {
+                                        delete_ldap_contact_from_phone_number(&phone_number, &ldap).await.map_err(|err| err.into())
+                                    } else {
+                                        result
+                                    };
                                     let is_ok = result.is_ok();
                                     saving_resource.set(Saving::Finished(result));
                                     if is_ok {
