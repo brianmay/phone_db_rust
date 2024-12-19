@@ -4,7 +4,9 @@ use sqlx::{
 };
 use tap::Pipe;
 
-use common::{ContactDetails, ContactKey, ContactUpdateRequest, Page, PageRequest};
+use common::{
+    ContactAddRequest, ContactDetails, ContactKey, ContactUpdateRequest, Page, PageRequest,
+};
 
 pub fn list_to_page(items: Vec<ContactDetails>, limit: i64) -> Page<ContactDetails, ContactKey> {
     let length = i64::try_from(items.len()).unwrap_or(0);
@@ -117,6 +119,7 @@ pub async fn update_contact(
     let time = chrono::Utc::now();
     let ContactUpdateRequest {
         id,
+        phone_number,
         name,
         action,
         comments,
@@ -124,14 +127,63 @@ pub async fn update_contact(
 
     let result = sqlx::query!(
         r#"
-        UPDATE contacts SET name = $2, action = $3, comments = $4, updated_at = $5
+        UPDATE contacts SET phone_number = $2, name = $3, action = $4, comments = $5, updated_at = $6
         WHERE id = $1
         "#,
         id,
+        *phone_number,
         *name,
         action.as_str(),
         *comments,
         time
+    )
+    .execute(db)
+    .await?;
+
+    if result.rows_affected() == 0 {
+        Err(sqlx::Error::RowNotFound)?;
+    }
+
+    Ok(())
+}
+
+pub async fn add_contact(db: &PgPool, request: &ContactAddRequest) -> Result<(), sqlx::Error> {
+    let time = chrono::Utc::now();
+    let ContactAddRequest {
+        phone_number,
+        name,
+        action,
+        comments,
+    } = request;
+
+    let result = sqlx::query!(
+        r#"
+        INSERT INTO contacts (phone_number, name, action, comments, inserted_at, updated_at)
+        VALUES ($1, $2, $3, $4, $5, $5)
+        "#,
+        *phone_number,
+        *name,
+        action.as_str(),
+        *comments,
+        time
+    )
+    .execute(db)
+    .await?;
+
+    if result.rows_affected() == 0 {
+        Err(sqlx::Error::RowNotFound)?;
+    }
+
+    Ok(())
+}
+
+pub async fn delete_contact(db: &PgPool, id: i64) -> Result<(), sqlx::Error> {
+    let result = sqlx::query!(
+        r#"
+        DELETE FROM contacts
+        WHERE id = $1
+        "#,
+        id
     )
     .execute(db)
     .await?;

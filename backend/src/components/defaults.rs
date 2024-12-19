@@ -1,8 +1,11 @@
 #![allow(non_snake_case)]
 
-use super::common::{InputString, ValidationError};
+use super::common::{EditError, InputString, Operation, ValidationError};
 use super::page::{Footer, NavBar};
-use crate::components::common::InputSelect;
+use crate::components::common::{ActiveDialog, InputSelect, Saving};
+use crate::components::validation::{
+    validate_action, validate_name, validate_order, validate_regexp,
+};
 use crate::{
     components::app::Route,
     database::{
@@ -14,7 +17,6 @@ use common::{Action, Default};
 use dioxus::prelude::*;
 use dioxus_router::prelude::navigator;
 use sqlx::PgPool;
-use thiserror::Error;
 
 #[component]
 fn DefaultComponent(
@@ -54,19 +56,6 @@ fn DefaultComponent(
             }
         }
     }
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-enum Operation {
-    Add,
-    Edit(i64),
-}
-
-#[derive(Debug, Clone, Copy)]
-enum ActiveDialog {
-    Editing(Operation),
-    Deleting(i64),
-    Idle,
 }
 
 #[component]
@@ -277,6 +266,8 @@ pub fn DefaultDetailView(default_id: i64) -> Element {
                                             on_delete: move || {
                                                 edit.set(ActiveDialog::Idle);
                                                 default_resource.restart();
+                                                let navigator = navigator();
+                                                navigator.push(Route::DefaultListView {  });
                                             },
                                             on_cancel: move || {
                                                 edit.set(ActiveDialog::Idle);
@@ -332,49 +323,6 @@ pub fn DefaultDetailView(default_id: i64) -> Element {
         }
         Footer {}
     }
-}
-
-enum Saving {
-    No,
-    Yes,
-    Finished(Result<(), EditError>),
-}
-
-#[derive(Error, Debug)]
-enum EditError {
-    #[error("{0}")]
-    Sqlx(#[from] sqlx::Error),
-
-    #[error("{0}")]
-    Validation(#[from] ValidationError),
-}
-
-fn validate_order(str: &str) -> Result<i32, ValidationError> {
-    if str.is_empty() {
-        return Err(ValidationError("Order cannot be empty".to_string()));
-    }
-
-    str.parse()
-        .map_err(|err| ValidationError(format!("Invalid integer: {err}")))
-}
-
-fn validate_regexp(str: &str) -> Result<String, ValidationError> {
-    if str.is_empty() {
-        return Err(ValidationError("Regexp cannot be empty".to_string()));
-    }
-    regex::Regex::new(str).map_err(|err| ValidationError(format!("Invalid regexp: {err}")))?;
-    Ok(str.to_string())
-}
-
-fn validate_name(str: &str) -> Result<String, ValidationError> {
-    if str.is_empty() {
-        return Err(ValidationError("Name cannot be empty".to_string()));
-    }
-    Ok(str.to_string())
-}
-
-fn validate_action(str: &str) -> Result<Action, ValidationError> {
-    Action::try_from(str).map_err(|err| ValidationError(format!("Invalid action: {err}")))
 }
 
 async fn save(
@@ -473,8 +421,7 @@ fn EditDefaultDialog(
     let default = default_resource.read();
     let saving = saving_resource.read();
     let disabled = !matches!(*default, Some(Ok(_))) || matches!(*saving, Saving::Yes);
-    let disabled_save =
-        !matches!(*default, Some(Ok(_))) || matches!(*saving, Saving::Yes) || !is_valid;
+    let disabled_save = disabled || !is_valid;
     let status = match (&*default, &*saving) {
         (_, Saving::Yes) => rsx! {
             div {

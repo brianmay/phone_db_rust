@@ -1,6 +1,6 @@
 use axum_test::TestServer;
 use backend::types::Contact;
-use common::{Action, ContactDetails, ContactKey, Page, Response};
+use common::{Action, ContactDetails, ContactKey, ContactUpdateRequest, Page, Response};
 use sqlx::PgPool;
 
 #[sqlx::test]
@@ -99,11 +99,13 @@ async fn test_update_contact(db: PgPool) {
     .await
     .unwrap();
 
-    let update_request = contact.get_update_request(
-        Action::VoiceMail,
-        Some("John Doe".to_string()),
-        Some("Test".to_string()),
-    );
+    let update_request = ContactUpdateRequest {
+        id: contact.id,
+        phone_number: "0412345678".to_string(),
+        name: Some("John Doe".to_string()),
+        action: Action::VoiceMail,
+        comments: Some("Test".to_string()),
+    };
 
     let response = server.post("/api/contacts").json(&update_request).await;
 

@@ -1,5 +1,5 @@
 use chrono::{DateTime, Utc};
-use common::{Action, ContactUpdateRequest};
+use common::Action;
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Deserialize, Serialize)]
@@ -14,17 +14,17 @@ pub struct Contact {
 }
 
 impl Contact {
-    pub fn get_update_request(
-        self,
-        action: Action,
-        name: Option<String>,
-        comments: Option<String>,
-    ) -> ContactUpdateRequest {
-        ContactUpdateRequest {
-            id: self.id,
-            name,
-            action,
-            comments,
-        }
-    }
+    // pub fn get_update_request(
+    //     self,
+    //     action: Action,
+    //     name: Option<String>,
+    //     comments: Option<String>,
+    // ) -> ContactUpdateRequest {
+    //     ContactUpdateRequest {
+    //         id: self.id,
+    //         name,
+    //         action,
+    //         comments,
+    //     }
+    // }
 }

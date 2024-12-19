@@ -4,7 +4,7 @@ use std::vec;
 
 use super::page::{Footer, NavBar};
 use crate::{
-    components::{app::Route, contacts::EditContactDialog},
+    components::{app::Route, common::Operation, contacts::EditContactDialog},
     database,
     datetime::datetime_to_string,
 };
@@ -263,7 +263,7 @@ pub fn PhoneCallListView() -> Element {
 
             if let Some(contact_id) = *edit_contact.read() {
                 EditContactDialog{
-                    contact_id: contact_id,
+                    contact_id: Operation::Edit(contact_id),
                     on_cancel: move || {
                         edit_contact.set(None);
                     },

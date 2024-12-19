@@ -6,6 +6,34 @@ use thiserror::Error;
 #[error("{0}")]
 pub struct ValidationError(pub String);
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Operation {
+    Add,
+    Edit(i64),
+}
+
+#[derive(Debug, Clone, Copy)]
+pub enum ActiveDialog {
+    Editing(Operation),
+    Deleting(i64),
+    Idle,
+}
+
+pub enum Saving {
+    No,
+    Yes,
+    Finished(Result<(), EditError>),
+}
+
+#[derive(Error, Debug)]
+pub enum EditError {
+    #[error("{0}")]
+    Sqlx(#[from] sqlx::Error),
+
+    #[error("{0}")]
+    Validation(#[from] ValidationError),
+}
+
 fn get_input_classes(is_valid: bool, changed: bool) -> &'static str {
     if is_valid {
         return "form-control is-valid";
@@ -62,6 +90,48 @@ pub fn InputString<D: 'static + Clone + Eq + PartialEq>(
 }
 
 #[component]
+pub fn InputTextArea<D: 'static + Clone + Eq + PartialEq>(
+    id: &'static str,
+    label: &'static str,
+    validate: Memo<Result<D, ValidationError>>,
+    changed: Signal<bool>,
+    value: Signal<String>,
+    disabled: bool,
+) -> Element {
+    rsx! {
+        div {
+            class: "form-group",
+            label {
+                for: id,
+                "{label}"
+            }
+            textarea {
+                class: get_input_classes(validate().is_ok(), changed()),
+                id: id,
+                placeholder: "Enter input",
+                value: value(),
+                disabled: disabled,
+                oninput: move |e| {
+                    changed.set(true);
+                    value.set(e.value());
+                }
+            }
+            if let Err(err) = validate() {
+                div {
+                    class: "invalid-feedback",
+                    "{err}"
+                }
+            } else {
+                div {
+                    class: "valid-feedback",
+                    "Looks good!"
+                }
+            }
+        }
+    }
+}
+
+#[component]
 pub fn InputSelect<D: 'static + Clone + Eq + PartialEq>(
     id: &'static str,
     label: &'static str,
@@ -86,6 +156,11 @@ pub fn InputSelect<D: 'static + Clone + Eq + PartialEq>(
                     changed.set(true);
                     value.set(e.value());
                 },
+                value: value(),
+                option {
+                    value: "",
+                    label: "Select..."
+                }
                 for (label, value) in options {
                     option {
                         value: value,

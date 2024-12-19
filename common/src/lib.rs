@@ -127,19 +127,19 @@ pub struct ContactDetails {
 }
 
 impl ContactDetails {
-    pub fn get_update_request(
-        self,
-        name: Option<String>,
-        action: Action,
-        comments: Option<String>,
-    ) -> ContactUpdateRequest {
-        ContactUpdateRequest {
-            id: self.id,
-            name,
-            action,
-            comments,
-        }
-    }
+    // pub fn get_update_request(
+    //     self,
+    //     name: Option<String>,
+    //     action: Action,
+    //     comments: Option<String>,
+    // ) -> ContactUpdateRequest {
+    //     ContactUpdateRequest {
+    //         id: self.id,
+    //         name,
+    //         action,
+    //         comments,
+    //     }
+    // }
 
     pub fn get_key(&self) -> ContactKey {
         ContactKey {
@@ -158,6 +158,14 @@ pub struct ContactKey {
 #[derive(Debug, Deserialize, Serialize)]
 pub struct ContactUpdateRequest {
     pub id: i64,
+    pub phone_number: String,
+    pub name: Option<String>,
+    pub action: Action,
+    pub comments: Option<String>,
+}
+
+pub struct ContactAddRequest {
+    pub phone_number: String,
     pub name: Option<String>,
     pub action: Action,
     pub comments: Option<String>,
