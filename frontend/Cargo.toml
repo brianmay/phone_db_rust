@@ -2,6 +2,7 @@
 name = "frontend"
 version = "0.1.0"
 edition = "2021"
+license = "AGPL-3.0"
 
 [dependencies]
 #dioxus = { version = "0.6.0", features = ["asset", "document", "file_engine", "hooks", "html", "launch", "logger", "macro", "mounted", "signals", "web"], default-features = false }

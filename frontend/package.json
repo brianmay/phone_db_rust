@@ -2,6 +2,7 @@
   "author": "You <you@example.com>",
   "name": "rust-webpack-template",
   "version": "0.1.0",
+  "license": "AGPL-3.0",
   "scripts": {
     "build": "rimraf dist pkg && webpack",
     "dev": "rimraf dist pkg && webpack -d eval",
