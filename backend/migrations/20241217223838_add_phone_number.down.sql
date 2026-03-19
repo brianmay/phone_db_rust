@@ -1,1 +1,0 @@
-ALTER TABLE phone_calls DROP COLUMN phone_number;
