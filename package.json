@@ -1,0 +1,10 @@
+{
+  "devDependencies": {
+    "daisyui": "^5.5.14",
+    "tailwindcss": "^4.1.14"
+  },
+  "dependencies": {
+    "@tailwindcss/typography": "^0.5.19",
+    "@undecaf/zbar-wasm": "^0.11.0"
+  }
+}
