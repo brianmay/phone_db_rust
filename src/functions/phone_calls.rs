@@ -21,6 +21,35 @@ pub async fn search_phone_calls(
         .map_err(ServerFnError::from)
 }
 
+/// Returns up to `page_size + 1` results matching `query`, starting after the
+/// cursor `(before_ts, before_id)` if provided.  The caller uses the extra
+/// entry to detect whether a next page exists.
+#[server]
+pub async fn search_phone_calls_paginated(
+    query: String,
+    before_ts: Option<chrono::DateTime<chrono::Utc>>,
+    before_id: Option<models::PhoneCallId>,
+    page_size: i64,
+) -> Result<Vec<(models::PhoneCall, contact_models::Contact)>, ServerFnError> {
+    let _logged_in_user_id = get_user_id().await?;
+    let mut conn = get_database_connection().await?;
+
+    let before = match (before_ts, before_id) {
+        (Some(ts), Some(id)) => Some((ts, id)),
+        _ => None,
+    };
+
+    crate::server::database::service::phone_calls::search_phone_calls_paginated(
+        &mut conn,
+        query,
+        before,
+        page_size + 1,
+    )
+    .await
+    .map_err(AppError::from)
+    .map_err(ServerFnError::from)
+}
+
 /// Returns up to `page_size + 1` calls for a contact, starting after the
 /// cursor `(before_ts, before_id)` if provided.  The caller uses the extra
 /// entry to detect whether a next page exists (fetch `page_size + 1`, render

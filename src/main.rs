@@ -43,8 +43,8 @@ enum Route {
     ContactList { dialog: ListDialogReference },
     #[route("/contacts/:contact_id?:before_ts&:before_id")]
     ContactDetail { contact_id: ContactId, before_ts: Option<chrono::DateTime<chrono::Utc>>, before_id: Option<models::phone_calls::PhoneCallId> },
-    #[route("/phone_calls?:dialog")]
-    PhoneCallList { dialog: ListDialogReference },
+    #[route("/phone_calls?:dialog&:q&:before_ts&:before_id")]
+    PhoneCallList { dialog: ListDialogReference, q: String, before_ts: Option<chrono::DateTime<chrono::Utc>>, before_id: Option<models::phone_calls::PhoneCallId> },
     #[route("/defaults?:dialog")]
     DefaultList { dialog: components::defaults::ListDialogReference },
 }

@@ -78,6 +78,60 @@ pub async fn search_phone_calls(
     Ok(out)
 }
 
+pub async fn search_phone_calls_paginated(
+    conn: &mut DatabaseConnection,
+    search: &str,
+    before: Option<(chrono::DateTime<chrono::Utc>, i64)>,
+    page_size: i64,
+) -> Result<Vec<(PhoneCall, Contact, i64)>, diesel::result::Error> {
+    use crate::server::database::schema::contacts::dsl as c_q;
+    use crate::server::database::schema::contacts::table as c_table;
+    use crate::server::database::schema::phone_calls::dsl as q;
+    use crate::server::database::schema::phone_calls::dsl as pc;
+    use crate::server::database::schema::phone_calls::table;
+    use crate::server::database::schema::phone_calls::table as pc_table;
+    use diesel::dsl::count_star;
+
+    let search = search.replace("%", "\\%");
+    let pattern = format!("%{}%", search);
+
+    let base = table
+        .inner_join(c_table.on(c_q::id.eq(q::contact_id)))
+        .select((PhoneCall::as_select(), Contact::as_select()))
+        .filter(
+            c_q::name
+                .ilike(pattern.clone())
+                .or(c_q::phone_number.ilike(pattern)),
+        )
+        .order((q::inserted_at.desc(), q::id.desc()))
+        .limit(page_size)
+        .into_boxed();
+
+    let rows: Vec<(PhoneCall, Contact)> = match before {
+        None => base.get_results(conn).await?,
+        Some((ts, id)) => {
+            base.filter(
+                q::inserted_at
+                    .lt(ts)
+                    .or(q::inserted_at.eq(ts).and(q::id.lt(id))),
+            )
+            .get_results(conn)
+            .await?
+        }
+    };
+
+    let mut out = Vec::with_capacity(rows.len());
+    for (phone_call, contact) in rows {
+        let count: i64 = pc_table
+            .filter(pc::contact_id.eq(contact.id))
+            .select(count_star())
+            .first(conn)
+            .await?;
+        out.push((phone_call, contact, count));
+    }
+    Ok(out)
+}
+
 pub async fn get_phone_calls_for_contact(
     conn: &mut DatabaseConnection,
     contact_id: i64,

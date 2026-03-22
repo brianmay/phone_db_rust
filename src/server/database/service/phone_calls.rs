@@ -29,6 +29,24 @@ pub async fn search_phone_calls(
         .map_err(Error::from)
 }
 
+pub async fn search_phone_calls_paginated(
+    conn: &mut database::DatabaseConnection,
+    query: String,
+    before: Option<(chrono::DateTime<chrono::Utc>, models::PhoneCallId)>,
+    page_size: i64,
+) -> Result<Vec<(models::PhoneCall, contact_models::Contact)>, Error> {
+    let before_raw = before.map(|(ts, id)| (ts, id.as_inner()));
+    phone_calls::search_phone_calls_paginated(conn, &query, before_raw, page_size)
+        .await
+        .map(|x| {
+            x.into_iter()
+                .map(|(phone_call, contact, count)| (phone_call.into(), contact.into_model(count)))
+                .collect()
+        })
+        .map_err(database::Error::from)
+        .map_err(Error::from)
+}
+
 pub async fn get_phone_calls_for_contact(
     conn: &mut database::DatabaseConnection,
     contact_id: contact_models::ContactId,

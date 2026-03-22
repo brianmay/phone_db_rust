@@ -86,6 +86,9 @@ pub fn Navbar() -> Element {
                             MenuItem {
                                 route: Route::PhoneCallList {
                                     dialog: crate::components::contacts::ListDialogReference::Idle,
+                                    q: String::new(),
+                                    before_ts: None,
+                                    before_id: None,
                                 },
                                 title: "Phone Calls",
                                 show_menu,
