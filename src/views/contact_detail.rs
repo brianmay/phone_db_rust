@@ -5,18 +5,18 @@ use std::ops::Deref;
 use chrono::{DateTime, Local, Utc};
 use dioxus::prelude::*;
 use dioxus_fullstack::ServerFnError;
-use dioxus_router::navigator;
+use tap::Pipe;
 
 use crate::{
     Route,
     components::{
         Markdown,
         buttons::{ChangeButton, DeleteButton, NavButton},
-        contacts::ListDialogReference,
+        contacts::{ActiveDialog, ContactDialog, ListDialogReference, Operation},
     },
     functions::{contacts::get_contact_by_id, phone_calls::get_phone_calls_for_contact},
     models::{
-        contacts::ContactId,
+        contacts::{Contact, ContactId},
         phone_calls::{PhoneCall, PhoneCallId},
     },
     use_user,
@@ -57,6 +57,7 @@ fn CallRow(call: PhoneCall) -> Element {
 #[component]
 pub fn ContactDetail(
     contact_id: ContactId,
+    dialog: ReadSignal<Option<ListDialogReference>>,
     before_ts: ReadSignal<Option<DateTime<Utc>>>,
     before_id: ReadSignal<Option<PhoneCallId>>,
 ) -> Element {
@@ -67,15 +68,37 @@ pub fn ContactDetail(
         };
     };
 
-    let contact_resource = use_resource(move || async move { get_contact_by_id(contact_id).await });
+    let mut contact_resource =
+        use_resource(move || async move { get_contact_by_id(contact_id).await });
+
+    // Resolve dialog state from URL param, loading the contact if needed.
+    let dialog_resource: Resource<Result<ActiveDialog, ServerFnError>> =
+        use_resource(move || async move {
+            let Some(dialog) = dialog() else {
+                return Ok(ActiveDialog::Idle);
+            };
+            match dialog {
+                ListDialogReference::Update { contact_id } => {
+                    let contact = get_contact_by_id(contact_id)
+                        .await?
+                        .ok_or(ServerFnError::new("Cannot find contact"))?;
+                    ActiveDialog::Change(Operation::Update { contact }).pipe(Ok)
+                }
+                ListDialogReference::Delete { contact_id } => {
+                    let contact = get_contact_by_id(contact_id)
+                        .await?
+                        .ok_or(ServerFnError::new("Cannot find contact"))?;
+                    ActiveDialog::Delete(contact).pipe(Ok)
+                }
+                ListDialogReference::Create | ListDialogReference::Idle => Ok(ActiveDialog::Idle),
+            }
+        });
 
     // Fetch one extra row to detect whether a next page exists.
     let calls_resource: Resource<Result<Vec<PhoneCall>, ServerFnError>> =
         use_resource(move || async move {
             get_phone_calls_for_contact(contact_id, before_ts(), before_id(), PAGE_SIZE).await
         });
-
-    let navigator = navigator();
 
     rsx! {
         // ── Contact detail card ──────────────────────────────────────────────
@@ -118,35 +141,29 @@ pub fn ContactDetail(
                     div { class: "flex flex-wrap gap-2",
                         ChangeButton {
                             on_click: move |_| {
-                                navigator.push(Route::ContactList {
-                                    dialog: ListDialogReference::Update {
-                                        contact_id,
-                                    },
-                                    q: String::new(),
-                                    before_id: None,
-                                    before_name: None,
-                                    before_name_null: false,
+                                navigator().push(Route::ContactDetail {
+                                    contact_id,
+                                    dialog: ListDialogReference::Update { contact_id },
+                                    before_ts: before_ts(),
+                                    before_id: before_id(),
                                 });
                             },
                             "Edit"
                         }
                         DeleteButton {
                             on_click: move |_| {
-                                navigator.push(Route::ContactList {
-                                    dialog: ListDialogReference::Delete {
-                                        contact_id,
-                                    },
-                                    q: String::new(),
-                                    before_id: None,
-                                    before_name: None,
-                                    before_name_null: false,
+                                navigator().push(Route::ContactDetail {
+                                    contact_id,
+                                    dialog: ListDialogReference::Delete { contact_id },
+                                    before_ts: before_ts(),
+                                    before_id: before_id(),
                                 });
                             },
                             "Delete"
                         }
                         NavButton {
                             on_click: move |_| {
-                                navigator.push(Route::ContactList {
+                                navigator().push(Route::ContactList {
                                     dialog: ListDialogReference::Idle,
                                     q: String::new(),
                                     before_id: None,
@@ -206,23 +223,22 @@ pub fn ContactDetail(
 
                             // ── Pagination ───────────────────────────────────
                             div { class: "flex gap-4 mt-4 ml-2",
-                                // "Previous" = browser back — no explicit button needed.
                                 if before_ts().is_some() {
                                     NavButton {
-                                        on_click: move |_| { navigator.go_back(); },
+                                        on_click: move |_| { navigator().go_back(); },
                                         "Previous"
                                     }
                                 }
                                 if has_next {
-                                    // Cursor = last visible row.
                                     if let Some(last) = visible.last() {
                                         NavButton {
                                             on_click: {
                                                 let ts = last.inserted_at;
                                                 let id = last.id;
                                                 move |_| {
-                                                    navigator.push(Route::ContactDetail {
+                                                    navigator().push(Route::ContactDetail {
                                                         contact_id,
+                                                        dialog: ListDialogReference::Idle,
                                                         before_ts: Some(ts),
                                                         before_id: Some(id),
                                                     });
@@ -239,7 +255,50 @@ pub fn ContactDetail(
             },
         }
 
-        // Dialogs (edit/delete) are handled by navigating to ContactList;
-        // nothing to render here.
+        // ── Edit / Delete dialog ─────────────────────────────────────────────
+        match dialog_resource.read().deref() {
+            Some(Err(err)) => rsx! {
+                div { class: "alert alert-error",
+                    "Error loading dialog: "
+                    {err.to_string()}
+                }
+            },
+            Some(Ok(active_dialog)) => rsx! {
+                ContactDialog {
+                    dialog: active_dialog.clone(),
+                    on_change: move |contact: Contact| {
+                        // Refresh the detail card with the updated data.
+                        contact_resource.restart();
+                        navigator().push(Route::ContactDetail {
+                            contact_id: contact.id,
+                            dialog: ListDialogReference::Idle,
+                            before_ts: before_ts(),
+                            before_id: before_id(),
+                        });
+                    },
+                    on_delete: move |_contact| {
+                        // Contact is gone — navigate back to the list.
+                        navigator().push(Route::ContactList {
+                            dialog: ListDialogReference::Idle,
+                            q: String::new(),
+                            before_id: None,
+                            before_name: None,
+                            before_name_null: false,
+                        });
+                    },
+                    on_close: move |()| {
+                        navigator().push(Route::ContactDetail {
+                            contact_id,
+                            dialog: ListDialogReference::Idle,
+                            before_ts: before_ts(),
+                            before_id: before_id(),
+                        });
+                    },
+                }
+            },
+            None => rsx! {
+                p { class: "alert alert-info", "Loading..." }
+            },
+        }
     }
 }

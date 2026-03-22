@@ -76,6 +76,7 @@ fn EntryRow(
                                 navigator()
                                     .push(Route::ContactDetail {
                                         contact_id: contact.id,
+                                        dialog: crate::components::contacts::ListDialogReference::Idle,
                                         before_ts: None,
                                         before_id: None,
                                     });
