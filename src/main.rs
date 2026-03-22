@@ -40,8 +40,8 @@ enum Route {
     NotFound { segments: Vec<String> },
     #[route("/contacts?:dialog")]
     ContactList { dialog: ListDialogReference },
-    #[route("/phone_calls?:dialog")]
-    PhoneCallList { dialog: components::phone_calls::ListDialogReference },
+    #[route("/phone_calls")]
+    PhoneCallList {  },
     #[route("/defaults?:dialog")]
     DefaultList { dialog: components::defaults::ListDialogReference },
 }

@@ -140,30 +140,30 @@ impl<'a> ChangePhoneCall<'a> {
     }
 }
 
-pub async fn update_phone_call(
-    conn: &mut DatabaseConnection,
-    id: i64,
-    update: &ChangePhoneCall<'_>,
-) -> Result<PhoneCall, diesel::result::Error> {
-    use crate::server::database::schema::phone_calls::dsl as q;
-    use crate::server::database::schema::phone_calls::table;
+// pub async fn update_phone_call(
+//     conn: &mut DatabaseConnection,
+//     id: i64,
+//     update: &ChangePhoneCall<'_>,
+// ) -> Result<PhoneCall, diesel::result::Error> {
+//     use crate::server::database::schema::phone_calls::dsl as q;
+//     use crate::server::database::schema::phone_calls::table;
 
-    diesel::update(table.filter(q::id.eq(id)))
-        .set(update)
-        .returning(PhoneCall::as_returning())
-        .get_result(conn)
-        .await
-}
+//     diesel::update(table.filter(q::id.eq(id)))
+//         .set(update)
+//         .returning(PhoneCall::as_returning())
+//         .get_result(conn)
+//         .await
+// }
 
-pub async fn delete_phone_call(
-    conn: &mut DatabaseConnection,
-    id: i64,
-) -> Result<(), diesel::result::Error> {
-    use crate::server::database::schema::phone_calls::dsl as q;
-    use crate::server::database::schema::phone_calls::table;
+// pub async fn delete_phone_call(
+//     conn: &mut DatabaseConnection,
+//     id: i64,
+// ) -> Result<(), diesel::result::Error> {
+//     use crate::server::database::schema::phone_calls::dsl as q;
+//     use crate::server::database::schema::phone_calls::table;
 
-    diesel::delete(table.filter(q::id.eq(id)))
-        .execute(conn)
-        .await?;
-    Ok(())
-}
+//     diesel::delete(table.filter(q::id.eq(id)))
+//         .execute(conn)
+//         .await?;
+//     Ok(())
+// }

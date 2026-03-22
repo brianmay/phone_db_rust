@@ -3,17 +3,10 @@ use std::ops::Deref;
 use chrono::Local;
 use dioxus::prelude::*;
 use dioxus_fullstack::ServerFnError;
-use dioxus_router::navigator;
-use tap::Pipe;
 
 use crate::{
-    Route,
-    components::{
-        buttons::{ChangeButton, CreateButton},
-        contacts::ContactSummary,
-        phone_calls::{ActiveDialog, ListDialogReference, Operation, PhoneCallDialog},
-    },
-    functions::phone_calls::{get_phone_call_by_id, search_phone_calls},
+    components::contacts::ContactSummary,
+    functions::phone_calls::search_phone_calls,
     models::{
         contacts::Contact,
         phone_calls::{PhoneCall, PhoneCallId},
@@ -29,7 +22,6 @@ fn EntryRow(
 ) -> Element {
     let id = phone_call.id;
 
-    let navigator = navigator();
     rsx! {
         tr {
             class: "hover:bg-gray-500 border-blue-300 mt-2 mb-2 p-2 border-2 w-full sm:w-auto sm:border-none inline-block sm:table-row",
@@ -56,42 +48,11 @@ fn EntryRow(
                 }
             }
         }
-
-        if selected() == Some(id) {
-            tr {
-                td { colspan: "4", class: "block sm:table-cell",
-                    div { class: "flex gap-2",
-                        ChangeButton {
-                            on_click: move |_| {
-                                navigator
-                                    .push(Route::PhoneCallList {
-                                        dialog: ListDialogReference::Update {
-                                            phone_call_id: id,
-                                        },
-                                    });
-                            },
-                            "Edit"
-                        }
-                        ChangeButton {
-                            on_click: move |_| {
-                                navigator
-                                    .push(Route::PhoneCallList {
-                                        dialog: ListDialogReference::Delete {
-                                            phone_call_id: id,
-                                        },
-                                    });
-                            },
-                            "Delete"
-                        }
-                    }
-                }
-            }
-        }
     }
 }
 
 #[component]
-pub fn PhoneCallList(dialog: ReadSignal<Option<ListDialogReference>>) -> Element {
+pub fn PhoneCallList() -> Element {
     let user = use_user().ok().flatten();
 
     let Some(_user) = user.as_ref() else {
@@ -104,46 +65,11 @@ pub fn PhoneCallList(dialog: ReadSignal<Option<ListDialogReference>>) -> Element
 
     let mut query = use_signal(|| "".to_string());
 
-    let dialog: Resource<Result<ActiveDialog, ServerFnError>> = use_resource(move || async move {
-        let Some(dialog) = dialog() else {
-            return Ok(ActiveDialog::Idle);
-        };
-        match dialog {
-            ListDialogReference::Create => ActiveDialog::Change(Operation::Create).pipe(Ok),
-            ListDialogReference::Update { phone_call_id } => {
-                let phone_call = get_phone_call_by_id(phone_call_id)
-                    .await?
-                    .ok_or(ServerFnError::new("Cannot find phone call"))?;
-                ActiveDialog::Change(Operation::Update { phone_call }).pipe(Ok)
-            }
-            ListDialogReference::Delete { phone_call_id } => {
-                let phone_call = get_phone_call_by_id(phone_call_id)
-                    .await?
-                    .ok_or(ServerFnError::new("Cannot find phone call"))?;
-                ActiveDialog::Delete(phone_call).pipe(Ok)
-            }
-            ListDialogReference::Idle => Ok(ActiveDialog::Idle),
-        }
-    });
-
-    let navigator = navigator();
-    let mut list: Resource<Result<Vec<(PhoneCall, Contact)>, ServerFnError>> =
+    let list: Resource<Result<Vec<(PhoneCall, Contact)>, ServerFnError>> =
         use_resource(move || async move { search_phone_calls(query()).await });
 
     rsx! {
         div { class: "ml-2 mr-2",
-            div { class: "mb-2",
-                CreateButton {
-                    on_click: move |_| {
-                        navigator
-                            .push(Route::PhoneCallList {
-                                dialog: ListDialogReference::Create,
-                            });
-                    },
-                    "Create"
-                }
-            }
-
             div { class: "mb-2",
                 input {
                     class: "form-control",
@@ -186,33 +112,6 @@ pub fn PhoneCallList(dialog: ReadSignal<Option<ListDialogReference>>) -> Element
                             }
                         }
                     }
-                }
-            },
-            None => {
-                rsx! {
-                    p { class: "alert alert-info", "Loading..." }
-                }
-            }
-        }
-
-        match dialog.read().deref() {
-            Some(Err(err)) => rsx! {
-                div { class: "alert alert-error",
-                    "Error loading dialog: "
-                    {err.to_string()}
-                }
-            },
-            Some(Ok(dialog)) => rsx! {
-                PhoneCallDialog {
-                    dialog: dialog.clone(),
-                    on_change: move |_phone_call: PhoneCall| { list.restart() },
-                    on_delete: move |_phone_call| list.restart(),
-                    on_close: move |()| {
-                        navigator
-                            .push(Route::PhoneCallList {
-                                dialog: ListDialogReference::Idle,
-                            });
-                    },
                 }
             },
             None => {

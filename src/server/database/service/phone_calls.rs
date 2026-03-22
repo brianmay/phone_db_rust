@@ -60,42 +60,42 @@ pub async fn create_phone_call(
     .await
 }
 
-pub async fn update_phone_call(
-    mut conn: database::DatabaseConnection,
-    old_phone_call: models::PhoneCall,
-    change_phone_call: models::ChangePhoneCall,
-) -> Result<models::PhoneCall, Error> {
-    let updates = phone_calls::ChangePhoneCall::from_front_end(&change_phone_call);
+// pub async fn update_phone_call(
+//     mut conn: database::DatabaseConnection,
+//     old_phone_call: models::PhoneCall,
+//     change_phone_call: models::ChangePhoneCall,
+// ) -> Result<models::PhoneCall, Error> {
+//     let updates = phone_calls::ChangePhoneCall::from_front_end(&change_phone_call);
 
-    conn.transaction::<_, Error, _>(|conn| {
-        Box::pin(async move {
-            let phone_call: models::PhoneCall =
-                phone_calls::update_phone_call(conn, old_phone_call.id.as_inner(), &updates)
-                    .await
-                    .map(|x| x.into())
-                    .map_err(Error::from)?;
+//     conn.transaction::<_, Error, _>(|conn| {
+//         Box::pin(async move {
+//             let phone_call: models::PhoneCall =
+//                 phone_calls::update_phone_call(conn, old_phone_call.id.as_inner(), &updates)
+//                     .await
+//                     .map(|x| x.into())
+//                     .map_err(Error::from)?;
 
-            Ok(phone_call)
-        })
-    })
-    .await
-}
+//             Ok(phone_call)
+//         })
+//     })
+//     .await
+// }
 
-pub async fn delete_phone_call(
-    mut conn: database::DatabaseConnection,
-    old_phone_call: models::PhoneCall,
-) -> Result<(), Error> {
-    conn.transaction::<_, Error, _>(|conn| {
-        Box::pin(async move {
-            crate::server::database::models::phone_calls::delete_phone_call(
-                conn,
-                old_phone_call.id.as_inner(),
-            )
-            .await
-            .map_err(Error::from)?;
+// pub async fn delete_phone_call(
+//     mut conn: database::DatabaseConnection,
+//     old_phone_call: models::PhoneCall,
+// ) -> Result<(), Error> {
+//     conn.transaction::<_, Error, _>(|conn| {
+//         Box::pin(async move {
+//             crate::server::database::models::phone_calls::delete_phone_call(
+//                 conn,
+//                 old_phone_call.id.as_inner(),
+//             )
+//             .await
+//             .map_err(Error::from)?;
 
-            Ok(())
-        })
-    })
-    .await
-}
+//             Ok(())
+//         })
+//     })
+//     .await
+// }
