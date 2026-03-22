@@ -5,7 +5,7 @@ use serde::{Deserialize, Serialize};
 
 use super::common::MaybeSet;
 
-#[derive(Copy, Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
+#[derive(Copy, Clone, Debug, Default, Eq, PartialEq, Serialize, Deserialize)]
 pub struct ContactId(i64);
 
 impl ContactId {

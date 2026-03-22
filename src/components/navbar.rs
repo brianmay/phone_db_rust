@@ -79,6 +79,10 @@ pub fn Navbar() -> Element {
                             MenuItem {
                                 route: Route::ContactList {
                                     dialog: crate::components::contacts::ListDialogReference::Idle,
+                                    q: String::new(),
+                                    before_id: None,
+                                    before_name: None,
+                                    before_name_null: false,
                                 },
                                 title: "Contacts",
                                 show_menu,

@@ -16,6 +16,50 @@ pub async fn search_contacts(query: String) -> Result<Vec<models::Contact>, Serv
         .map_err(ServerFnError::from)
 }
 
+/// Returns up to `page_size + 1` contacts matching `query`, sorted
+/// `(name ASC NULLS LAST, id ASC)`, starting after the cursor row.
+///
+/// The cursor is split into two params because `Option<Option<String>>` does
+/// not round-trip cleanly as a URL query param:
+///   - `before_id`        — id of the last visible row (`None` = first page)
+///   - `before_name`      — name of the last visible row, if it had one
+///   - `before_name_null` — true when the last visible row's name was NULL
+///
+/// Caller uses the extra row to detect whether a next page exists.
+#[server]
+pub async fn search_contacts_paginated(
+    query: String,
+    before_id: Option<models::ContactId>,
+    before_name: Option<String>,
+    before_name_null: bool,
+    page_size: i64,
+) -> Result<Vec<models::Contact>, ServerFnError> {
+    let _logged_in_user_id = get_user_id().await?;
+    let mut conn = get_database_connection().await?;
+
+    // Reconstruct Option<Option<String>> from the split params.
+    let cursor_name: Option<Option<String>> = if before_id.is_some() {
+        if before_name_null {
+            Some(None)
+        } else {
+            Some(before_name)
+        }
+    } else {
+        None
+    };
+
+    crate::server::database::service::contacts::search_contacts_paginated(
+        &mut conn,
+        query,
+        cursor_name,
+        before_id,
+        page_size + 1,
+    )
+    .await
+    .map_err(AppError::from)
+    .map_err(ServerFnError::from)
+}
+
 #[server]
 pub async fn get_contact_by_id(
     id: models::ContactId,

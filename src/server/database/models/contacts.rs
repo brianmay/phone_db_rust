@@ -86,6 +86,76 @@ pub async fn search_contacts(
         .map(|rows| rows.into_iter().map(|(c, n)| (c, n.unwrap_or(0))).collect())
 }
 
+/// Paginated contact search.
+///
+/// Results are sorted `(name ASC NULLS LAST, id ASC)`.  Pass a cursor to
+/// start after the last row seen on the previous page:
+///   - `before_name`      — `Some(Some(name))` if the row had a name,
+///     `Some(None)` if name was NULL,
+///     `None` for the first page
+///   - `before_id`   — `Some(id)` of the last visible row, `None` for first page
+///
+/// Caller should request `page_size + 1` rows to detect whether a next page exists.
+pub async fn search_contacts_paginated(
+    conn: &mut DatabaseConnection,
+    search: &str,
+    before_name: Option<Option<String>>,
+    before_id: Option<i64>,
+    page_size: i64,
+) -> Result<Vec<(Contact, i64)>, diesel::result::Error> {
+    use crate::server::database::schema::contacts::dsl as q;
+    use crate::server::database::schema::contacts::table;
+    use crate::server::database::schema::phone_calls::dsl as pc;
+    use crate::server::database::schema::phone_calls::table as pc_table;
+    use diesel::dsl::count_star;
+
+    let search = search.replace("%", "\\%");
+    let pattern = format!("%{}%", search);
+
+    let count_subquery = pc_table
+        .filter(pc::contact_id.eq(q::id))
+        .select(count_star())
+        .single_value();
+
+    let base = table
+        .select((Contact::as_select(), count_subquery))
+        .filter(
+            q::name
+                .ilike(pattern.clone())
+                .or(q::phone_number.ilike(pattern)),
+        )
+        .order((q::name.asc().nulls_last(), q::id.asc()))
+        .limit(page_size)
+        .into_boxed();
+
+    let rows = match (before_name, before_id) {
+        (Some(cursor_name), Some(cursor_id)) => match cursor_name {
+            // Cursor row had a non-NULL name: next rows satisfy
+            //   name > cursor_name  OR  (name = cursor_name AND id > cursor_id)
+            // Rows with NULL name sort after all named rows, so include them too.
+            Some(name) => {
+                base.filter(
+                    q::name
+                        .gt(name.clone())
+                        .or(q::name.eq(name).and(q::id.gt(cursor_id)))
+                        .or(q::name.is_null()),
+                )
+                .get_results::<(Contact, Option<i64>)>(conn)
+                .await?
+            }
+            // Cursor row had NULL name: only null-named rows with id > cursor_id remain.
+            None => {
+                base.filter(q::name.is_null().and(q::id.gt(cursor_id)))
+                    .get_results::<(Contact, Option<i64>)>(conn)
+                    .await?
+            }
+        },
+        _ => base.get_results::<(Contact, Option<i64>)>(conn).await?,
+    };
+
+    Ok(rows.into_iter().map(|(c, n)| (c, n.unwrap_or(0))).collect())
+}
+
 pub async fn get_contact_by_id(
     conn: &mut DatabaseConnection,
     id: i64,

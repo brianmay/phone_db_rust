@@ -122,6 +122,10 @@ pub fn ContactDetail(
                                     dialog: ListDialogReference::Update {
                                         contact_id,
                                     },
+                                    q: String::new(),
+                                    before_id: None,
+                                    before_name: None,
+                                    before_name_null: false,
                                 });
                             },
                             "Edit"
@@ -132,6 +136,10 @@ pub fn ContactDetail(
                                     dialog: ListDialogReference::Delete {
                                         contact_id,
                                     },
+                                    q: String::new(),
+                                    before_id: None,
+                                    before_name: None,
+                                    before_name_null: false,
                                 });
                             },
                             "Delete"
@@ -140,6 +148,10 @@ pub fn ContactDetail(
                             on_click: move |_| {
                                 navigator.push(Route::ContactList {
                                     dialog: ListDialogReference::Idle,
+                                    q: String::new(),
+                                    before_id: None,
+                                    before_name: None,
+                                    before_name_null: false,
                                 });
                             },
                             "Back to Contacts"

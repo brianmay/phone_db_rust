@@ -39,8 +39,8 @@ enum Route {
     UserDetail { user_id: UserId, dialog: users::DetailsDialogReference },
     #[route("/:..segments")]
     NotFound { segments: Vec<String> },
-    #[route("/contacts?:dialog")]
-    ContactList { dialog: ListDialogReference },
+    #[route("/contacts?:dialog&:q&:before_id&:before_name&:before_name_null")]
+    ContactList { dialog: ListDialogReference, q: String, before_id: Option<models::contacts::ContactId>, before_name: Option<String>, before_name_null: bool },
     #[route("/contacts/:contact_id?:before_ts&:before_id")]
     ContactDetail { contact_id: ContactId, before_ts: Option<chrono::DateTime<chrono::Utc>>, before_id: Option<models::phone_calls::PhoneCallId> },
     #[route("/phone_calls?:dialog&:q&:before_ts&:before_id")]

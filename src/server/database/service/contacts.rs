@@ -28,6 +28,21 @@ pub async fn search_contacts(
         .map_err(Error::from)
 }
 
+pub async fn search_contacts_paginated(
+    conn: &mut database::DatabaseConnection,
+    query: String,
+    before_name: Option<Option<String>>,
+    before_id: Option<models::ContactId>,
+    page_size: i64,
+) -> Result<Vec<models::Contact>, Error> {
+    let before_id_raw = before_id.map(|id| id.as_inner());
+    contacts::search_contacts_paginated(conn, &query, before_name, before_id_raw, page_size)
+        .await
+        .map(|rows| rows.into_iter().map(|(c, n)| c.into_model(n)).collect())
+        .map_err(database::Error::from)
+        .map_err(Error::from)
+}
+
 pub async fn get_contact_by_id(
     conn: &mut database::DatabaseConnection,
     id: models::ContactId,
