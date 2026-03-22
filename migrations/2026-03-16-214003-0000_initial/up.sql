@@ -37,8 +37,8 @@ CREATE TABLE "phone_calls"(
 	FOREIGN KEY ("contact_id") REFERENCES "contacts"("id")
 );
 CREATE TABLE "schema_migrations"(
-	"version" INT8 NOT NULL PRIMARY KEY,
-	"inserted_at" TIMESTAMP
+    version bigint NOT NULL PRIMARY KEY,
+    inserted_at timestamp(0) without time zone
 );
 CREATE UNIQUE INDEX users_username_index ON users USING btree (username);
 CREATE UNIQUE INDEX contacts_phone_number_index ON contacts USING btree (phone_number);
