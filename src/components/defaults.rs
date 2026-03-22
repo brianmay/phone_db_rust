@@ -8,6 +8,7 @@ use thiserror::Error;
 use crate::{
     forms::{
         Dialog, EditError, FieldValue, FormSaveCancelButton, InputString, Saving, ValidationError,
+        validate_default_name, validate_regex,
     },
     functions::defaults::{create_default, delete_default, update_default},
     models::{
@@ -93,8 +94,8 @@ pub fn DefaultUpdate(op: Operation, on_cancel: Callback, on_save: Callback<Defau
 
     let validate = Validate {
         order: use_memo(move || validate_optional_order(&order())),
-        regexp: use_memo(move || validate_optional_string(&regexp())),
-        name: use_memo(move || validate_optional_string(&name())),
+        regexp: use_memo(move || validate_regex(&regexp())),
+        name: use_memo(move || validate_default_name(&name())),
         action: use_memo(move || validate_optional_string(&action())),
     };
 

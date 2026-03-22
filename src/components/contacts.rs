@@ -9,7 +9,8 @@ use crate::{
     components::Markdown,
     forms::{
         Dialog, EditError, FieldValue, FormSaveCancelButton, InputString, InputTextArea, Saving,
-        ValidationError, validate_action, validate_comments, validate_name, validate_phone_number,
+        ValidationError, validate_action, validate_comments, validate_contact_name,
+        validate_phone_number,
     },
     functions::contacts::{create_contact, delete_contact, update_contact},
     models::{
@@ -86,7 +87,7 @@ pub fn ContactUpdate(op: Operation, on_cancel: Callback, on_save: Callback<Conta
 
     let validate = Validate {
         phone_number: use_memo(move || validate_phone_number(&phone_number())),
-        name: use_memo(move || validate_name(&name())),
+        name: use_memo(move || validate_contact_name(&name())),
         action: use_memo(move || validate_action(&action())),
         comments: use_memo(move || validate_comments(&comments())),
     };

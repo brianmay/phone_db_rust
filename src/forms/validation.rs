@@ -25,7 +25,11 @@ pub fn validate_action(str: &str) -> Result<String, ValidationError> {
     }
 }
 
-pub fn validate_name(str: &str) -> Result<Option<String>, ValidationError> {
+pub fn validate_default_name(str: &str) -> Result<Option<String>, ValidationError> {
+    validate_field_value(str)
+}
+
+pub fn validate_contact_name(str: &str) -> Result<Option<String>, ValidationError> {
     validate_field_value(str)
 }
 
@@ -77,4 +81,20 @@ pub fn validate_2nd_password(
 
 pub fn validate_comments(str: &str) -> Result<Option<String>, ValidationError> {
     validate_field_value(str)
+}
+
+pub fn validate_regex(str: &str) -> Result<Option<String>, ValidationError> {
+    match validate_field_value::<String>(str) {
+        Ok(regex) => {
+            if regex.is_empty() {
+                Ok(None)
+            } else {
+                match regex::Regex::new(&regex) {
+                    Ok(_) => Ok(Some(regex)),
+                    Err(err) => Err(ValidationError(format!("Invalid regex: {err}"))),
+                }
+            }
+        }
+        Err(err) => Err(err),
+    }
 }

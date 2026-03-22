@@ -13,8 +13,8 @@ pub use saving::MyForm;
 pub use saving::Saving;
 pub use validation::{
     validate_1st_password, validate_2nd_password, validate_action, validate_comments,
-    validate_email, validate_full_name, validate_name, validate_password, validate_phone_number,
-    validate_username,
+    validate_contact_name, validate_default_name, validate_email, validate_full_name,
+    validate_password, validate_phone_number, validate_regex, validate_username,
 };
 
 mod values;
