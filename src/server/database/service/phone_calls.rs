@@ -1,6 +1,7 @@
 use diesel_async::AsyncConnection;
 use thiserror::Error;
 
+use crate::models::contacts::Contact;
 use crate::models::phone_calls as models;
 use crate::server::database::connection as database;
 use crate::server::database::models::phone_calls;
@@ -16,13 +17,13 @@ pub enum Error {
 pub async fn search_phone_calls(
     conn: &mut database::DatabaseConnection,
     query: String,
-) -> Result<Vec<models::PhoneCall>, Error> {
+) -> Result<Vec<(models::PhoneCall, Contact)>, Error> {
     phone_calls::search_phone_calls(conn, &query)
         .await
         .map(|x| {
             x.into_iter()
-                .map(|(phone_call, _contact)| phone_call.into())
-                .collect::<Vec<models::PhoneCall>>()
+                .map(|(phone_call, contact)| (phone_call.into(), contact.into()))
+                .collect::<Vec<(models::PhoneCall, Contact)>>()
         })
         .map_err(database::Error::from)
         .map_err(Error::from)
@@ -47,10 +48,11 @@ pub async fn create_phone_call(
 
     conn.transaction::<_, Error, _>(|conn| {
         Box::pin(async move {
-            let phone_call: models::PhoneCall = phone_calls::create_phone_call(conn, &new_phone_call)
-                .await
-                .map(|x| x.into())
-                .map_err(Error::from)?;
+            let phone_call: models::PhoneCall =
+                phone_calls::create_phone_call(conn, &new_phone_call)
+                    .await
+                    .map(|x| x.into())
+                    .map_err(Error::from)?;
 
             Ok(phone_call)
         })

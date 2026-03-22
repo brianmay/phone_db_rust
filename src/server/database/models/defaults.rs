@@ -48,7 +48,7 @@ pub async fn search_defaults(
     table
         .select(Default::as_select())
         .filter(q::name.ilike(format!("%{}%", search)))
-        .order((q::name.asc(),))
+        .order((q::order.asc(), q::id.asc()))
         .limit(10)
         .into_boxed()
         .get_results(conn)
@@ -63,7 +63,7 @@ pub async fn get_all_defaults(
 
     table
         .select(Default::as_select())
-        .order((q::name.asc(),))
+        .order((q::order.asc(), q::id.asc()))
         .get_results(conn)
         .await
 }

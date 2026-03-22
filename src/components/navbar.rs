@@ -91,6 +91,27 @@ pub fn Navbar() -> Element {
                         //     show_menu,
                         // }
                         if let Some(user) = user {
+                            MenuItem {
+                                route: Route::ContactList {
+                                    dialog: crate::components::contacts::ListDialogReference::Idle,
+                                },
+                                title: "Contacts",
+                                show_menu,
+                            }
+                            MenuItem {
+                                route: Route::PhoneCallList {
+                                    dialog: crate::components::phone_calls::ListDialogReference::Idle,
+                                },
+                                title: "Phone Calls",
+                                show_menu,
+                            }
+                            MenuItem {
+                                route: Route::DefaultList {
+                                    dialog: crate::components::defaults::ListDialogReference::Idle,
+                                },
+                                title: "Defaults",
+                                show_menu,
+                            }
                             if user.is_admin {
                                 MenuItem {
                                     route: Route::UserList {

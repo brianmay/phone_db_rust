@@ -7,7 +7,9 @@ use components::{navbar::Navbar, users};
 use dioxus_fullstack::{ServerFnError, use_server_future};
 use dioxus_router::{Routable, Router};
 use models::users::{User, UserId};
-use views::{ContactList, Home, Login, Logout, UserDetail, UserList, get_user};
+use views::{
+    ContactList, DefaultList, Home, Login, Logout, PhoneCallList, UserDetail, UserList, get_user,
+};
 
 mod components;
 mod dt;
@@ -38,6 +40,10 @@ enum Route {
     NotFound { segments: Vec<String> },
     #[route("/contacts?:dialog")]
     ContactList { dialog: ListDialogReference },
+    #[route("/phone_calls?:dialog")]
+    PhoneCallList { dialog: components::phone_calls::ListDialogReference },
+    #[route("/defaults?:dialog")]
+    DefaultList { dialog: components::defaults::ListDialogReference },
 }
 
 const FAVICON_SVG: Asset = asset!("/assets/favicon.svg");

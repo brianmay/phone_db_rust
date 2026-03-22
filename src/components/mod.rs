@@ -1,6 +1,8 @@
 pub mod buttons;
 pub mod contacts;
+pub mod defaults;
 pub mod navbar;
+pub mod phone_calls;
 pub mod users;
 
 mod times;

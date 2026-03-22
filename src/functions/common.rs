@@ -30,6 +30,12 @@ pub enum AppError {
 
     #[error("Users error: {0}")]
     Users(#[from] crate::server::database::service::users::Error),
+
+    #[error("Phone calls error: {0}")]
+    PhoneCalls(#[from] crate::server::database::service::phone_calls::Error),
+
+    #[error("Defaults error: {0}")]
+    Defaults(#[from] crate::server::database::service::defaults::Error),
 }
 
 impl From<AppError> for ServerFnError {
