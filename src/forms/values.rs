@@ -19,10 +19,6 @@ pub trait FieldValue: Sized {
     fn from_raw(value: &Self::DerefValue) -> Result<Self, FieldValueError>;
 }
 
-pub trait FieldLabel {
-    fn as_label(&self) -> Element;
-}
-
 impl FieldValue for String {
     type RawValue = String;
     type DerefValue = str;

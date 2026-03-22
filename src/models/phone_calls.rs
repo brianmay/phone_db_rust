@@ -5,12 +5,14 @@ use serde::{Deserialize, Serialize};
 
 use crate::models::contacts::ContactId;
 
+#[cfg(feature = "server")]
 use super::common::MaybeSet;
 
 #[derive(Copy, Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
 pub struct PhoneCallId(i64);
 
 impl PhoneCallId {
+    #[cfg(feature = "server")]
     pub fn new(id: i64) -> Self {
         Self(id)
     }
@@ -44,12 +46,7 @@ pub struct PhoneCall {
     pub updated_at: DateTime<Utc>,
 }
 
-impl PhoneCall {
-    pub fn as_title(&self) -> String {
-        self.inserted_at.format("%Y-%m-%d %H:%M:%S").to_string()
-    }
-}
-
+#[cfg(feature = "server")]
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
 pub struct NewPhoneCall {
     pub action: String,
@@ -57,6 +54,7 @@ pub struct NewPhoneCall {
     pub destination_number: Option<String>,
 }
 
+#[cfg(feature = "server")]
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
 pub struct ChangePhoneCall {
     pub action: MaybeSet<String>,

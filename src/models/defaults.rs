@@ -1,4 +1,4 @@
-use std::{slice::Iter, str::FromStr};
+use std::str::FromStr;
 
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
@@ -48,6 +48,7 @@ impl Default {
         self.name.clone().unwrap_or_else(|| self.id.0.to_string())
     }
 
+    #[cfg(feature = "server")]
     pub fn test_phone_number(&self, phone_number: &str) -> bool {
         if let Some(regexp) = &self.regexp {
             regex::Regex::new(regexp)
@@ -76,16 +77,18 @@ pub struct ChangeDefault {
     pub action: MaybeSet<Option<String>>,
 }
 
+#[cfg(feature = "server")]
 pub struct DefaultList(Vec<Default>);
 
+#[cfg(feature = "server")]
 impl DefaultList {
     pub fn new(defaults: Vec<Default>) -> Self {
         Self(defaults)
     }
 
-    pub fn iter(&self) -> Iter<'_, Default> {
-        self.0.iter()
-    }
+    // pub fn iter(&self) -> Iter<'_, Default> {
+    //     self.0.iter()
+    // }
 
     pub fn search_phone_number(&self, phone_number: &str) -> Option<&Default> {
         self.0.iter().find(|d| d.test_phone_number(phone_number))

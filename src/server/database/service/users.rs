@@ -24,38 +24,38 @@ pub async fn get_user_by_id(
         .map_err(Error::from)
 }
 
-pub async fn get_user_by_username(
-    conn: &mut database::DatabaseConnection,
-    username: &str,
-) -> Result<Option<models::User>, Error> {
-    users::get_user_by_username(conn, username)
-        .await
-        .map(|x| x.map(|y| y.into()))
-        .map_err(database::Error::from)
-        .map_err(Error::from)
-}
+// pub async fn get_user_by_username(
+//     conn: &mut database::DatabaseConnection,
+//     username: &str,
+// ) -> Result<Option<models::User>, Error> {
+//     users::get_user_by_username(conn, username)
+//         .await
+//         .map(|x| x.map(|y| y.into()))
+//         .map_err(database::Error::from)
+//         .map_err(Error::from)
+// }
 
-pub async fn get_user_by_oidc_id(
-    conn: &mut database::DatabaseConnection,
-    oidc_id: &str,
-) -> Result<Option<models::User>, Error> {
-    users::get_user_by_oidc_id(conn, oidc_id)
-        .await
-        .map(|x| x.map(|y| y.into()))
-        .map_err(database::Error::from)
-        .map_err(Error::from)
-}
+// pub async fn get_user_by_oidc_id(
+//     conn: &mut database::DatabaseConnection,
+//     oidc_id: &str,
+// ) -> Result<Option<models::User>, Error> {
+//     users::get_user_by_oidc_id(conn, oidc_id)
+//         .await
+//         .map(|x| x.map(|y| y.into()))
+//         .map_err(database::Error::from)
+//         .map_err(Error::from)
+// }
 
-pub async fn get_user_by_email(
-    conn: &mut database::DatabaseConnection,
-    email: &str,
-) -> Result<Option<models::User>, Error> {
-    users::get_user_by_email(conn, email)
-        .await
-        .map(|x| x.map(|y| y.into()))
-        .map_err(database::Error::from)
-        .map_err(Error::from)
-}
+// pub async fn get_user_by_email(
+//     conn: &mut database::DatabaseConnection,
+//     email: &str,
+// ) -> Result<Option<models::User>, Error> {
+//     users::get_user_by_email(conn, email)
+//         .await
+//         .map(|x| x.map(|y| y.into()))
+//         .map_err(database::Error::from)
+//         .map_err(Error::from)
+// }
 
 pub async fn get_users(
     conn: &mut database::DatabaseConnection,

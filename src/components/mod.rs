@@ -4,8 +4,6 @@ pub mod defaults;
 pub mod navbar;
 pub mod users;
 
-mod times;
-
 use dioxus::prelude::*;
 
 #[component]
