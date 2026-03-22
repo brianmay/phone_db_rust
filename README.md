@@ -1,3 +1,7 @@
+# Phone DB Rust
+
+Database of phone numbers with API for access by phone system.
+
 # Development
 
 Your new jumpstart project includes basic organization with an organized `assets` folder and a `components` folder. 
