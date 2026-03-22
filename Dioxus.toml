@@ -1,12 +1,12 @@
 [application]
 
 # App (Project) Name
-name = "penguin_nurse"
+name = "phone_db"
 
 [web.app]
 
 # HTML title tag content
-title = "penguin_nurse"
+title = "phone_db"
 
 # include `assets` in web platform
 [web.resource]

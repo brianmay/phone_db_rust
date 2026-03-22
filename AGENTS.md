@@ -1,10 +1,10 @@
-# AGENTS.md — phone_db_rust (penguin_nurse)
+# AGENTS.md — phone_db_rust (phone_db)
 
 Guidance for agentic coding agents operating in this repository.
 
 ## Project Overview
 
-A Dioxus fullstack web application (Rust) for managing phone contacts and call routing. The frontend compiles to WASM; the backend runs as an Axum server. PostgreSQL is the primary store; LDAP mirrors contact data. App name in `Dioxus.toml`: `penguin_nurse`. Package name in `Cargo.toml`: `phone_db`.
+A Dioxus fullstack web application (Rust) for managing phone contacts and call routing. The frontend compiles to WASM; the backend runs as an Axum server. PostgreSQL is the primary store; LDAP mirrors contact data. App name in `Dioxus.toml`: `phone_db`. Package name in `Cargo.toml`: `phone_db`.
 
 ---
 
@@ -73,11 +73,11 @@ When adding new functionality, prefer verifying correctness by building the proj
 
 The codebase has two main Cargo features:
 
-| Feature | Purpose |
-|---|---|
-| `web` (default) | Client/WASM build |
-| `server` | Enables all server-side deps (Axum, Diesel, LDAP, OIDC, etc.) |
-| `cli-only` | Implies `server`; for CLI tooling binaries |
+| Feature         | Purpose                                                       |
+| --------------- | ------------------------------------------------------------- |
+| `web` (default) | Client/WASM build                                             |
+| `server`        | Enables all server-side deps (Axum, Diesel, LDAP, OIDC, etc.) |
+| `cli-only`      | Implies `server`; for CLI tooling binaries                    |
 
 Server-only code must be gated with `#[cfg(feature = "server")]`. IDE support (rust-analyzer) uses `--features server` per `.helix/languages.toml`.
 
@@ -132,15 +132,15 @@ All DB operations follow this strict layering:
 
 Use these verbs consistently:
 
-| Verb | Meaning |
-|---|---|
-| `Add` / `Remove` | Modify a list |
+| Verb                | Meaning                                |
+| ------------------- | -------------------------------------- |
+| `Add` / `Remove`    | Modify a list                          |
 | `Create` / `Delete` | Create or permanently remove an entity |
-| `Archive` | Soft-hide an entity |
-| `Update` | Modify an existing entity |
-| `View` | Display/read-only component |
-| `Change` | Pending (unsaved) change state |
-| `New` | Pending (unsaved) new entity state |
+| `Archive`           | Soft-hide an entity                    |
+| `Update`            | Modify an existing entity              |
+| `View`              | Display/read-only component            |
+| `Change`            | Pending (unsaved) change state         |
+| `New`               | Pending (unsaved) new entity state     |
 
 ### Imports
 
@@ -219,20 +219,20 @@ Contact writes must be **mirrored to LDAP within the same transaction**. If LDAP
 
 ## Key Dependencies
 
-| Crate | Role |
-|---|---|
-| `dioxus 0.7` | Fullstack reactive UI + routing + server functions |
-| `axum 0.8` | HTTP server (Dioxus adapter) |
-| `diesel 2.2` + `diesel-async 0.7` | ORM + async PostgreSQL queries |
-| `mobc` | Async DB connection pool |
-| `axum-login 0.18` | Session-based authentication |
-| `tower-sessions 0.14` | Session middleware (PostgreSQL store) |
-| `password-auth` | Argon2 password hashing |
-| `openid 0.23` | OIDC/OAuth2 client |
-| `ldap3` + `bb8` | LDAP client + connection pool |
-| `thiserror 2` | Error derive macro |
-| `chrono 0.4` | Date/time with serde |
-| `tap` | `.pipe()` for fluent value wrapping |
-| `serde` / `serde_json` | Serialization |
-| `tracing` | Structured logging |
-| `classes` | CSS class composition macro |
+| Crate                             | Role                                               |
+| --------------------------------- | -------------------------------------------------- |
+| `dioxus 0.7`                      | Fullstack reactive UI + routing + server functions |
+| `axum 0.8`                        | HTTP server (Dioxus adapter)                       |
+| `diesel 2.2` + `diesel-async 0.7` | ORM + async PostgreSQL queries                     |
+| `mobc`                            | Async DB connection pool                           |
+| `axum-login 0.18`                 | Session-based authentication                       |
+| `tower-sessions 0.14`             | Session middleware (PostgreSQL store)              |
+| `password-auth`                   | Argon2 password hashing                            |
+| `openid 0.23`                     | OIDC/OAuth2 client                                 |
+| `ldap3` + `bb8`                   | LDAP client + connection pool                      |
+| `thiserror 2`                     | Error derive macro                                 |
+| `chrono 0.4`                      | Date/time with serde                               |
+| `tap`                             | `.pipe()` for fluent value wrapping                |
+| `serde` / `serde_json`            | Serialization                                      |
+| `tracing`                         | Structured logging                                 |
+| `classes`                         | CSS class composition macro                        |

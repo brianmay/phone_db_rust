@@ -41,7 +41,11 @@ pub fn Navbar() -> Element {
                 Link {
                     to: Route::Home {},
                     class: "flex items-center space-x-3 rtl:space-x-reverse",
-                    img { alt: "Nurse Logo", src: FAVICON_SVG, class: "h-12" }
+                    img {
+                        alt: "Penguin Phone DB Logo",
+                        src: FAVICON_SVG,
+                        class: "h-12",
+                    }
                     span { class: "self-center text-2xl font-semibold whitespace-nowrap dark:text-white",
                         "Phone DB"
                     }
@@ -147,12 +151,12 @@ pub fn Navbar() -> Element {
                     {crate::version::BUILD_DATE.unwrap_or("unknown")}
                 }
 
-                div { "Penguin Nurse © 2025, Brian May" }
+                div { "Penguin Phone DB © 2025, Brian May" }
             }
 
             nav {
                 div {
-                    a { href: "https://github.com/brianmay/penguin_nurse", "Source Code" }
+                    a { href: "https://github.com/brianmay/phone_db", "Source Code" }
                 }
             }
         }

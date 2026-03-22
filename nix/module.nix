@@ -47,9 +47,9 @@ in
     secretsFile = mkOption {
       type = types.nullOr types.str;
       default = null;
-      example = "/run/secrets/penguin-nurse.env";
+      example = "/run/secrets/phone-db.env";
       description = lib.mdDoc ''
-         Optional path to an env file containing the secrets used by penguin-nurse.
+         Optional path to an env file containing the secrets used by phone-db.
 
         Might contain:
          - `OIDC_DISCOVERY_URL` - The URL to the OIDC.
@@ -70,7 +70,7 @@ in
   config = mkIf cfg.enable {
     users.users.phone_db = {
       isSystemUser = true;
-      description = "Penguin Nurse user";
+      description = "Penguin Phone DB user";
       group = "phone_db";
       createHome = true;
       home = "${cfg.data_dir}";

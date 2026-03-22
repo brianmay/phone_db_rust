@@ -6,7 +6,6 @@
   inputs.nixpkgs-unstable.url = "github:NixOS/nixpkgs/nixos-unstable";
   inputs.rust-overlay.url = "github:oxalica/rust-overlay";
   inputs.devenv.url = "github:cachix/devenv";
-  inputs.crane.url = "github:ipetkov/crane";
   inputs.flockenzeit.url = "github:balsoft/flockenzeit";
 
   outputs =
@@ -17,7 +16,6 @@
       flake-utils,
       rust-overlay,
       devenv,
-      crane,
       flockenzeit,
     }:
     flake-utils.lib.eachDefaultSystem (
@@ -136,15 +134,18 @@
                     ];
                     "olcDatabase={1}mdb" = {
                       attrs = {
-                        objectClass = [ "olcDatabaseConfig" "olcMdbConfig" ];
+                        objectClass = [
+                          "olcDatabaseConfig"
+                          "olcMdbConfig"
+                        ];
                         olcDatabase = "{1}mdb";
                         olcDbDirectory = "/var/lib/openldap/db";
                         olcSuffix = "${dn_suffix}";
                         olcRootDN = "${root_dn}";
                         olcRootPW = "${root_password}";
                         olcAccess = [
-                          ''{0}to attrs=userPassword by self write by anonymous auth by * none''
-                          ''{1}to * by * read''
+                          "{0}to attrs=userPassword by self write by anonymous auth by * none"
+                          "{1}to * by * read"
                         ];
                       };
                     };

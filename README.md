@@ -1,6 +1,6 @@
 # Development
 
-Your new jumpstart project includes basic organization with an organized `assets` folder and a `components` folder. 
+Your new jumpstart project includes basic organization with an organized `assets` folder and a `components` folder.
 If you chose to develop with the router feature, you will also have a `views` folder.
 
 ## Getting Started
@@ -35,12 +35,12 @@ The project includes a CLI tool to validate database records and check for data 
 
 Quick usage with Nix:
 ```bash
-DATABASE_URL=postgres://user:password@localhost/penguin_nurse nix run .#lint
+DATABASE_URL=postgres://user:password@localhost/phone_db nix run .#lint
 ```
 
 Or with Cargo:
 ```bash
-export DATABASE_URL=postgres://user:password@localhost/penguin_nurse
+export DATABASE_URL=postgres://user:password@localhost/phone_db
 ./lint.sh
 ```
 

@@ -59,9 +59,9 @@
             "server": "localhost",
             "port": 6201,
             "driver": "PostgreSQL",
-            "name": "penguin_nurse",
-            "database": "penguin_nurse",
-            "username": "penguin_nurse",
+            "name": "phone_db",
+            "database": "phone_db",
+            "username": "phone_db",
             "password": "your_secure_password_here"
         }
     ],

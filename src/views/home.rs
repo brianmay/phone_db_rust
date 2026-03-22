@@ -10,7 +10,7 @@ pub fn Home() -> Element {
 
     rsx! {
         div {
-            h1 { class: "text-green-500", "Welcome to Penguin Nurse" }
+            h1 { class: "text-green-500", "Welcome to Penguin Phone DB" }
             p { "This is a  web application written in Rust using the Dioxus framework." }
             p { "Do not eat." }
 
