@@ -10,6 +10,9 @@ pub use users::{UserDetail, UserList};
 mod contacts;
 pub use contacts::ContactList;
 
+mod contact_detail;
+pub use contact_detail::ContactDetail;
+
 mod phone_calls;
 pub use phone_calls::PhoneCallList;
 

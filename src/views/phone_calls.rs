@@ -8,7 +8,7 @@ use tap::Pipe;
 use crate::{
     Route,
     components::{
-        buttons::ChangeButton,
+        buttons::{ChangeButton, NavButton},
         contacts::{ActiveDialog, ContactDialog, ContactSummary, ListDialogReference, Operation},
     },
     functions::{contacts::get_contact_by_id, phone_calls::search_phone_calls},
@@ -76,6 +76,17 @@ fn EntryRow(
                                     });
                             },
                             "Edit"
+                        }
+                        NavButton {
+                            on_click: move |_| {
+                                navigator()
+                                    .push(Route::ContactDetail {
+                                        contact_id: contact.id,
+                                        before_ts: None,
+                                        before_id: None,
+                                    });
+                            },
+                            "View"
                         }
                     }
                 }

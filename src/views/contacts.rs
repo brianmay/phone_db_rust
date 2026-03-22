@@ -9,7 +9,7 @@ use crate::{
     Route,
     components::{
         Markdown,
-        buttons::{ChangeButton, CreateButton},
+        buttons::{ChangeButton, CreateButton, NavButton},
         contacts::{ActiveDialog, ContactDialog, ListDialogReference, Operation},
     },
     functions::contacts::{get_contact_by_id, search_contacts},
@@ -53,6 +53,17 @@ fn EntryRow(contact: Contact, selected: Signal<Option<ContactId>>) -> Element {
             tr {
                 td { colspan: "6", class: "block sm:table-cell",
                     div { class: "flex gap-2",
+                        NavButton {
+                            on_click: move |_| {
+                                navigator
+                                    .push(Route::ContactDetail {
+                                        contact_id: id,
+                                        before_ts: None,
+                                        before_id: None,
+                                    });
+                            },
+                            "View"
+                        }
                         ChangeButton {
                             on_click: move |_| {
                                 navigator

@@ -8,7 +8,7 @@ use crate::models::contacts::ContactId;
 #[cfg(feature = "server")]
 use super::common::MaybeSet;
 
-#[derive(Copy, Clone, Debug, Eq, PartialEq, Serialize, Deserialize)]
+#[derive(Copy, Clone, Debug, Default, Eq, PartialEq, Serialize, Deserialize)]
 pub struct PhoneCallId(i64);
 
 impl PhoneCallId {

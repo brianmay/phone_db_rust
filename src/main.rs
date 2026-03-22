@@ -6,9 +6,11 @@ use components::contacts::ListDialogReference;
 use components::{navbar::Navbar, users};
 use dioxus_fullstack::{ServerFnError, use_server_future};
 use dioxus_router::{Routable, Router};
+use models::contacts::ContactId;
 use models::users::{User, UserId};
 use views::{
-    ContactList, DefaultList, Home, Login, Logout, PhoneCallList, UserDetail, UserList, get_user,
+    ContactDetail, ContactList, DefaultList, Home, Login, Logout, PhoneCallList, UserDetail,
+    UserList, get_user,
 };
 
 mod components;
@@ -39,6 +41,8 @@ enum Route {
     NotFound { segments: Vec<String> },
     #[route("/contacts?:dialog")]
     ContactList { dialog: ListDialogReference },
+    #[route("/contacts/:contact_id?:before_ts&:before_id")]
+    ContactDetail { contact_id: ContactId, before_ts: Option<chrono::DateTime<chrono::Utc>>, before_id: Option<models::phone_calls::PhoneCallId> },
     #[route("/phone_calls?:dialog")]
     PhoneCallList { dialog: ListDialogReference },
     #[route("/defaults?:dialog")]

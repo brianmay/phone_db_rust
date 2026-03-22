@@ -78,6 +78,36 @@ pub async fn search_phone_calls(
     Ok(out)
 }
 
+pub async fn get_phone_calls_for_contact(
+    conn: &mut DatabaseConnection,
+    contact_id: i64,
+    before: Option<(chrono::DateTime<chrono::Utc>, i64)>,
+    page_size: i64,
+) -> Result<Vec<PhoneCall>, diesel::result::Error> {
+    use crate::server::database::schema::phone_calls::dsl as q;
+    use crate::server::database::schema::phone_calls::table;
+
+    let base = table
+        .select(PhoneCall::as_select())
+        .filter(q::contact_id.eq(contact_id))
+        .order((q::inserted_at.desc(), q::id.desc()))
+        .limit(page_size)
+        .into_boxed();
+
+    match before {
+        None => base.get_results(conn).await,
+        Some((ts, id)) => {
+            base.filter(
+                q::inserted_at
+                    .lt(ts)
+                    .or(q::inserted_at.eq(ts).and(q::id.lt(id))),
+            )
+            .get_results(conn)
+            .await
+        }
+    }
+}
+
 pub async fn get_phone_call_by_id(
     conn: &mut DatabaseConnection,
     id: i64,

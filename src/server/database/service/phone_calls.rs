@@ -29,6 +29,20 @@ pub async fn search_phone_calls(
         .map_err(Error::from)
 }
 
+pub async fn get_phone_calls_for_contact(
+    conn: &mut database::DatabaseConnection,
+    contact_id: contact_models::ContactId,
+    before: Option<(chrono::DateTime<chrono::Utc>, models::PhoneCallId)>,
+    page_size: i64,
+) -> Result<Vec<models::PhoneCall>, Error> {
+    let before_raw = before.map(|(ts, id)| (ts, id.as_inner()));
+    phone_calls::get_phone_calls_for_contact(conn, contact_id.as_inner(), before_raw, page_size)
+        .await
+        .map(|rows| rows.into_iter().map(|p| p.into()).collect())
+        .map_err(database::Error::from)
+        .map_err(Error::from)
+}
+
 pub async fn get_phone_call_by_id(
     conn: &mut database::DatabaseConnection,
     id: models::PhoneCallId,
@@ -60,43 +74,3 @@ pub async fn create_phone_call(
     })
     .await
 }
-
-// pub async fn update_phone_call(
-//     mut conn: database::DatabaseConnection,
-//     old_phone_call: models::PhoneCall,
-//     change_phone_call: models::ChangePhoneCall,
-// ) -> Result<models::PhoneCall, Error> {
-//     let updates = phone_calls::ChangePhoneCall::from_front_end(&change_phone_call);
-
-//     conn.transaction::<_, Error, _>(|conn| {
-//         Box::pin(async move {
-//             let phone_call: models::PhoneCall =
-//                 phone_calls::update_phone_call(conn, old_phone_call.id.as_inner(), &updates)
-//                     .await
-//                     .map(|x| x.into())
-//                     .map_err(Error::from)?;
-
-//             Ok(phone_call)
-//         })
-//     })
-//     .await
-// }
-
-// pub async fn delete_phone_call(
-//     mut conn: database::DatabaseConnection,
-//     old_phone_call: models::PhoneCall,
-// ) -> Result<(), Error> {
-//     conn.transaction::<_, Error, _>(|conn| {
-//         Box::pin(async move {
-//             crate::server::database::models::phone_calls::delete_phone_call(
-//                 conn,
-//                 old_phone_call.id.as_inner(),
-//             )
-//             .await
-//             .map_err(Error::from)?;
-
-//             Ok(())
-//         })
-//     })
-//     .await
-// }
