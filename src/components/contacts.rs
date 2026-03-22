@@ -315,7 +315,6 @@ impl ToString for ListDialogReference {
 pub fn ContactDialog(
     dialog: ReadSignal<ActiveDialog>,
     on_change: Callback<Contact>,
-    on_change_ingredients: Callback<Contact>,
     on_delete: Callback<Contact>,
 
     on_close: Callback<()>,

@@ -75,21 +75,6 @@ pub fn Navbar() -> Element {
                     id: "navbar-multi-level",
                     class: "{menu_class} w-full md:block md:w-auto",
                     ul { class: "flex flex-col font-medium p-4 md:p-0 mt-4 border border-gray-100 rounded-lg bg-gray-50 md:space-x-8 rtl:space-x-reverse md:flex-row md:mt-0 md:border-0 md:bg-white dark:bg-gray-800 md:dark:bg-gray-900 dark:border-gray-700",
-                        // MenuItem {
-                        //     route: Route::TimelineList {
-                        //         date,
-                        //         dialog: timeline::DialogReference::Idle,
-                        //     },
-                        //     title: "Today",
-                        //     show_menu,
-                        // }
-                        // MenuItem {
-                        //     route: Route::ConsumableList {
-                        //         dialog: consumables::ListDialogReference::Idle,
-                        //     },
-                        //     title: "Consumables",
-                        //     show_menu,
-                        // }
                         if let Some(user) = user {
                             MenuItem {
                                 route: Route::ContactList {
@@ -99,7 +84,9 @@ pub fn Navbar() -> Element {
                                 show_menu,
                             }
                             MenuItem {
-                                route: Route::PhoneCallList {},
+                                route: Route::PhoneCallList {
+                                    dialog: crate::components::contacts::ListDialogReference::Idle,
+                                },
                                 title: "Phone Calls",
                                 show_menu,
                             }

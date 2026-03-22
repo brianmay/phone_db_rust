@@ -195,7 +195,6 @@ pub fn ContactList(dialog: ReadSignal<Option<ListDialogReference>>) -> Element {
                 ContactDialog {
                     dialog: dialog.clone(),
                     on_change: move |_contact: Contact| { list.restart() },
-                    on_change_ingredients: move |_contact: Contact| { list.restart() },
                     on_delete: move |_contact| list.restart(),
                     on_close: move |()| {
                         navigator

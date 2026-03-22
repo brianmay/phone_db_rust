@@ -3,10 +3,15 @@ use std::ops::Deref;
 use chrono::Local;
 use dioxus::prelude::*;
 use dioxus_fullstack::ServerFnError;
+use tap::Pipe;
 
 use crate::{
-    components::contacts::ContactSummary,
-    functions::phone_calls::search_phone_calls,
+    Route,
+    components::{
+        buttons::ChangeButton,
+        contacts::{ActiveDialog, ContactDialog, ContactSummary, ListDialogReference, Operation},
+    },
+    functions::{contacts::get_contact_by_id, phone_calls::search_phone_calls},
     models::{
         contacts::Contact,
         phone_calls::{PhoneCall, PhoneCallId},
@@ -48,11 +53,31 @@ fn EntryRow(
                 }
             }
         }
+
+        if selected() == Some(id) {
+            tr {
+                td { colspan: "6", class: "block sm:table-cell",
+                    div { class: "flex gap-2",
+                        ChangeButton {
+                            on_click: move |_| {
+                                navigator()
+                                    .push(Route::PhoneCallList {
+                                        dialog: ListDialogReference::Update {
+                                            contact_id: contact.id,
+                                        },
+                                    });
+                            },
+                            "Edit"
+                        }
+                    }
+                }
+            }
+        }
     }
 }
 
 #[component]
-pub fn PhoneCallList() -> Element {
+pub fn PhoneCallList(dialog: ReadSignal<Option<ListDialogReference>>) -> Element {
     let user = use_user().ok().flatten();
 
     let Some(_user) = user.as_ref() else {
@@ -65,7 +90,29 @@ pub fn PhoneCallList() -> Element {
 
     let mut query = use_signal(|| "".to_string());
 
-    let list: Resource<Result<Vec<(PhoneCall, Contact)>, ServerFnError>> =
+    let dialog: Resource<Result<ActiveDialog, ServerFnError>> = use_resource(move || async move {
+        let Some(dialog) = dialog() else {
+            return Ok(ActiveDialog::Idle);
+        };
+        match dialog {
+            ListDialogReference::Create => ActiveDialog::Change(Operation::Create).pipe(Ok),
+            ListDialogReference::Update { contact_id } => {
+                let contact = get_contact_by_id(contact_id)
+                    .await?
+                    .ok_or(ServerFnError::new("Cannot find contact"))?;
+                ActiveDialog::Change(Operation::Update { contact }).pipe(Ok)
+            }
+            ListDialogReference::Delete { contact_id } => {
+                let contact = get_contact_by_id(contact_id)
+                    .await?
+                    .ok_or(ServerFnError::new("Cannot find contact"))?;
+                ActiveDialog::Delete(contact).pipe(Ok)
+            }
+            ListDialogReference::Idle => Ok(ActiveDialog::Idle),
+        }
+    });
+
+    let mut list: Resource<Result<Vec<(PhoneCall, Contact)>, ServerFnError>> =
         use_resource(move || async move { search_phone_calls(query()).await });
 
     rsx! {
@@ -112,6 +159,33 @@ pub fn PhoneCallList() -> Element {
                             }
                         }
                     }
+                }
+            },
+            None => {
+                rsx! {
+                    p { class: "alert alert-info", "Loading..." }
+                }
+            }
+        }
+
+        match dialog.read().deref() {
+            Some(Err(err)) => rsx! {
+                div { class: "alert alert-error",
+                    "Error loading dialog: "
+                    {err.to_string()}
+                }
+            },
+            Some(Ok(dialog)) => rsx! {
+                ContactDialog {
+                    dialog: dialog.clone(),
+                    on_change: move |_contact: Contact| { list.restart() },
+                    on_delete: move |_contact| list.restart(),
+                    on_close: move |()| {
+                        navigator()
+                            .push(Route::PhoneCallList {
+                                dialog: ListDialogReference::Idle,
+                            });
+                    },
                 }
             },
             None => {
