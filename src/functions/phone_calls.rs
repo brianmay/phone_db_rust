@@ -1,4 +1,4 @@
-use crate::models::contacts::Contact;
+use crate::models::contacts as contact_models;
 use crate::models::phone_calls as models;
 use dioxus::prelude::*;
 use dioxus_fullstack::{ServerFnError, server};
@@ -11,7 +11,7 @@ use super::common::{AppError, get_database_connection};
 #[server]
 pub async fn search_phone_calls(
     query: String,
-) -> Result<Vec<(models::PhoneCall, Contact)>, ServerFnError> {
+) -> Result<Vec<(models::PhoneCall, contact_models::Contact)>, ServerFnError> {
     let _logged_in_user_id = get_user_id().await?;
     let mut conn = get_database_connection().await?;
 

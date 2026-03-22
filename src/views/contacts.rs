@@ -43,6 +43,10 @@ fn EntryRow(contact: Contact, selected: Signal<Option<ContactId>>) -> Element {
                     Markdown { content: comments.to_string() }
                 }
             }
+            td { class: "block sm:table-cell border-blue-300 sm:border-t-2",
+                span { class: "sm:hidden", "Calls: " }
+                {contact.phone_call_count.to_string()}
+            }
         }
 
         if selected() == Some(id) {
@@ -162,6 +166,7 @@ pub fn ContactList(dialog: ReadSignal<Option<ListDialogReference>>) -> Element {
                                 th { "Name" }
                                 th { "Actions" }
                                 th { "Comments" }
+                                th { "Calls" }
                             }
                         }
                         tbody { class: "block sm:table-row-group",

@@ -357,6 +357,10 @@ pub fn ContactSummary(contact: Contact) -> Element {
     rsx! {
         div { {contact.phone_number.clone()} }
         div {
+            span { "Calls: " }
+            {contact.phone_call_count.to_string()}
+        }
+        div {
             if let Some(name) = &contact.name {
                 {name.clone()}
             }

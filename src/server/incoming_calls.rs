@@ -209,7 +209,7 @@ pub async fn post_handler(
         destination_number: Some(request_clone.destination_number),
         inserted_at: phone_call.inserted_at,
         updated_at: phone_call.updated_at,
-        number_calls: None, // This can be filled in later if needed
+        number_calls: Some(contact.phone_call_count),
     };
 
     _ = tx.send((phone_call, contact));

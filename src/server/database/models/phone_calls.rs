@@ -39,16 +39,19 @@ impl From<PhoneCall> for model::PhoneCall {
 pub async fn search_phone_calls(
     conn: &mut DatabaseConnection,
     search: &str,
-) -> Result<Vec<(PhoneCall, Contact)>, diesel::result::Error> {
+) -> Result<Vec<(PhoneCall, Contact, i64)>, diesel::result::Error> {
     use crate::server::database::schema::contacts::dsl as c_q;
     use crate::server::database::schema::contacts::table as c_table;
     use crate::server::database::schema::phone_calls::dsl as q;
+    use crate::server::database::schema::phone_calls::dsl as pc;
     use crate::server::database::schema::phone_calls::table;
+    use crate::server::database::schema::phone_calls::table as pc_table;
+    use diesel::dsl::count_star;
 
     let search = search.replace("%", "\\%");
 
-    table
-        .inner_join(c_table)
+    let rows: Vec<(PhoneCall, Contact)> = table
+        .inner_join(c_table.on(c_q::id.eq(q::contact_id)))
         .select((PhoneCall::as_select(), Contact::as_select()))
         .filter(
             c_q::name
@@ -57,9 +60,20 @@ pub async fn search_phone_calls(
         )
         .order((q::inserted_at.desc(),))
         .limit(10)
-        .into_boxed()
         .get_results(conn)
-        .await
+        .await?;
+
+    // For each result, fetch the phone call count for the associated contact.
+    let mut out = Vec::with_capacity(rows.len());
+    for (phone_call, contact) in rows {
+        let count: i64 = pc_table
+            .filter(pc::contact_id.eq(contact.id))
+            .select(count_star())
+            .first(conn)
+            .await?;
+        out.push((phone_call, contact, count));
+    }
+    Ok(out)
 }
 
 pub async fn get_phone_call_by_id(

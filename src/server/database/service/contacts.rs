@@ -23,11 +23,7 @@ pub async fn search_contacts(
 ) -> Result<Vec<models::Contact>, Error> {
     contacts::search_contacts(conn, &query)
         .await
-        .map(|x| {
-            x.into_iter()
-                .map(|y| y.into())
-                .collect::<Vec<models::Contact>>()
-        })
+        .map(|rows| rows.into_iter().map(|(c, n)| c.into_model(n)).collect())
         .map_err(database::Error::from)
         .map_err(Error::from)
 }
@@ -38,7 +34,7 @@ pub async fn get_contact_by_id(
 ) -> Result<Option<models::Contact>, Error> {
     contacts::get_contact_by_id(conn, id.as_inner())
         .await
-        .map(|x| x.map(|y| y.into()))
+        .map(|x| x.map(|(c, n)| c.into_model(n)))
         .map_err(database::Error::from)
         .map_err(Error::from)
 }
@@ -49,7 +45,7 @@ pub async fn get_contact_by_phone_number(
 ) -> Result<Option<models::Contact>, Error> {
     contacts::get_contact_by_phone_number(conn, phone_number)
         .await
-        .map(|x| x.map(|y| y.into()))
+        .map(|x| x.map(|(c, n)| c.into_model(n)))
         .map_err(database::Error::from)
         .map_err(Error::from)
 }
@@ -64,18 +60,24 @@ pub async fn create_contact(
 
     conn.transaction::<_, Error, _>(|conn| {
         Box::pin(async move {
-            let contact: models::Contact = contacts::create_contact(conn, &new_contact)
+            let contact = contacts::create_contact(conn, &new_contact)
                 .await
-                .map(|x| x.into())
                 .map_err(Error::from)?;
 
             use crate::server::ldap::query::update_ldap_contact_from_contact;
 
-            update_ldap_contact_from_contact(&contact.phone_number, &contact, base_dn, ldap)
-                .await
-                .map_err(Error::from)?;
+            let model_contact = contact.into_model(0);
 
-            Ok(contact)
+            update_ldap_contact_from_contact(
+                &model_contact.phone_number,
+                &model_contact,
+                base_dn,
+                ldap,
+            )
+            .await
+            .map_err(Error::from)?;
+
+            Ok(model_contact)
         })
     })
     .await
@@ -92,19 +94,28 @@ pub async fn update_contact(
 
     conn.transaction::<_, Error, _>(|conn| {
         Box::pin(async move {
-            let contact: models::Contact =
-                contacts::update_contact(conn, old_contact.id.as_inner(), &updates)
-                    .await
-                    .map(|x| x.into())
-                    .map_err(Error::from)?;
-
-            use crate::server::ldap::query::update_ldap_contact_from_contact;
-
-            update_ldap_contact_from_contact(&old_contact.phone_number, &contact, base_dn, ldap)
+            let contact = contacts::update_contact(conn, old_contact.id.as_inner(), &updates)
                 .await
                 .map_err(Error::from)?;
 
-            Ok(contact)
+            let count = contacts::get_phone_call_count(conn, contact.id)
+                .await
+                .map_err(Error::from)?;
+
+            use crate::server::ldap::query::update_ldap_contact_from_contact;
+
+            let model_contact = contact.into_model(count);
+
+            update_ldap_contact_from_contact(
+                &old_contact.phone_number,
+                &model_contact,
+                base_dn,
+                ldap,
+            )
+            .await
+            .map_err(Error::from)?;
+
+            Ok(model_contact)
         })
     })
     .await

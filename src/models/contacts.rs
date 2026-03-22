@@ -39,6 +39,7 @@ pub struct Contact {
     pub name: Option<String>,
     pub action: String,
     pub comments: Option<String>,
+    pub phone_call_count: i64,
     pub inserted_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
 }

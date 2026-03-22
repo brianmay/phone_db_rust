@@ -22,31 +22,57 @@ pub struct Contact {
     pub updated_at: chrono::DateTime<chrono::Utc>,
 }
 
-impl From<Contact> for model::Contact {
-    fn from(contact: Contact) -> Self {
-        Self {
-            id: model::ContactId::new(contact.id),
-            phone_number: contact.phone_number,
-            name: contact.name,
-            action: contact.action,
-            comments: contact.comments,
-            inserted_at: contact.inserted_at,
-            updated_at: contact.updated_at,
+impl Contact {
+    pub fn into_model(self, phone_call_count: i64) -> model::Contact {
+        model::Contact {
+            id: model::ContactId::new(self.id),
+            phone_number: self.phone_number,
+            name: self.name,
+            action: self.action,
+            comments: self.comments,
+            phone_call_count,
+            inserted_at: self.inserted_at,
+            updated_at: self.updated_at,
         }
     }
+}
+
+/// Fetch the number of phone calls associated with a contact.
+pub async fn get_phone_call_count(
+    conn: &mut DatabaseConnection,
+    contact_id: i64,
+) -> Result<i64, diesel::result::Error> {
+    use crate::server::database::schema::phone_calls::dsl as pc;
+    use crate::server::database::schema::phone_calls::table as pc_table;
+    use diesel::dsl::count_star;
+
+    pc_table
+        .filter(pc::contact_id.eq(contact_id))
+        .select(count_star())
+        .first(conn)
+        .await
 }
 
 pub async fn search_contacts(
     conn: &mut DatabaseConnection,
     search: &str,
-) -> Result<Vec<Contact>, diesel::result::Error> {
+) -> Result<Vec<(Contact, i64)>, diesel::result::Error> {
     use crate::server::database::schema::contacts::dsl as q;
     use crate::server::database::schema::contacts::table;
+    use crate::server::database::schema::phone_calls::dsl as pc;
+    use crate::server::database::schema::phone_calls::table as pc_table;
+    use diesel::dsl::count_star;
 
     let search = search.replace("%", "\\%");
 
+    // Use a correlated subquery for the count so GROUP BY is not needed.
+    let count_subquery = pc_table
+        .filter(pc::contact_id.eq(q::id))
+        .select(count_star())
+        .single_value();
+
     table
-        .select(Contact::as_select())
+        .select((Contact::as_select(), count_subquery))
         .filter(
             q::name
                 .ilike(format!("%{}%", search))
@@ -55,38 +81,51 @@ pub async fn search_contacts(
         .order((q::name.asc(),))
         .limit(10)
         .into_boxed()
-        .get_results(conn)
+        .get_results::<(Contact, Option<i64>)>(conn)
         .await
+        .map(|rows| rows.into_iter().map(|(c, n)| (c, n.unwrap_or(0))).collect())
 }
 
 pub async fn get_contact_by_id(
     conn: &mut DatabaseConnection,
     id: i64,
-) -> Result<Option<Contact>, diesel::result::Error> {
+) -> Result<Option<(Contact, i64)>, diesel::result::Error> {
     use crate::server::database::schema::contacts as q;
     use crate::server::database::schema::contacts::table;
 
-    table
+    let Some(contact) = table
         .select(Contact::as_select())
         .filter(q::id.eq(id))
         .get_result(conn)
         .await
-        .optional()
+        .optional()?
+    else {
+        return Ok(None);
+    };
+
+    let count = get_phone_call_count(conn, contact.id).await?;
+    Ok(Some((contact, count)))
 }
 
 pub async fn get_contact_by_phone_number(
     conn: &mut DatabaseConnection,
     phone_number: &str,
-) -> Result<Option<Contact>, diesel::result::Error> {
+) -> Result<Option<(Contact, i64)>, diesel::result::Error> {
     use crate::server::database::schema::contacts as q;
     use crate::server::database::schema::contacts::table;
 
-    table
+    let Some(contact) = table
         .select(Contact::as_select())
         .filter(q::phone_number.eq(phone_number))
         .get_result(conn)
         .await
-        .optional()
+        .optional()?
+    else {
+        return Ok(None);
+    };
+
+    let count = get_phone_call_count(conn, contact.id).await?;
+    Ok(Some((contact, count)))
 }
 
 #[derive(Insertable, Debug, Clone)]

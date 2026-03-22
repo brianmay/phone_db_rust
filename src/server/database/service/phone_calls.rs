@@ -1,7 +1,7 @@
 use diesel_async::AsyncConnection;
 use thiserror::Error;
 
-use crate::models::contacts::Contact;
+use crate::models::contacts as contact_models;
 use crate::models::phone_calls as models;
 use crate::server::database::connection as database;
 use crate::server::database::models::phone_calls;
@@ -17,13 +17,13 @@ pub enum Error {
 pub async fn search_phone_calls(
     conn: &mut database::DatabaseConnection,
     query: String,
-) -> Result<Vec<(models::PhoneCall, Contact)>, Error> {
+) -> Result<Vec<(models::PhoneCall, contact_models::Contact)>, Error> {
     phone_calls::search_phone_calls(conn, &query)
         .await
         .map(|x| {
             x.into_iter()
-                .map(|(phone_call, contact)| (phone_call.into(), contact.into()))
-                .collect::<Vec<(models::PhoneCall, Contact)>>()
+                .map(|(phone_call, contact, count)| (phone_call.into(), contact.into_model(count)))
+                .collect()
         })
         .map_err(database::Error::from)
         .map_err(Error::from)

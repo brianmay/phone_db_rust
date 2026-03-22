@@ -150,10 +150,10 @@ pub fn PhoneCallList(dialog: ReadSignal<Option<ListDialogReference>>) -> Element
                             }
                         }
                         tbody { class: "block sm:table-row-group",
-                            for phone_call in list.iter() {
+                            for (phone_call, contact) in list.iter() {
                                 EntryRow {
-                                    phone_call: phone_call.0.clone(),
-                                    contact: phone_call.1.clone(),
+                                    phone_call: phone_call.clone(),
+                                    contact: contact.clone(),
                                     selected,
                                 }
                             }
