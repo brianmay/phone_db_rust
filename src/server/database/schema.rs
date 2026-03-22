@@ -25,7 +25,7 @@ diesel::table! {
         #[max_length = 255]
         name -> Nullable<Varchar>,
         #[max_length = 255]
-        action -> Nullable<Varchar>,
+        action -> Varchar,
         inserted_at -> Timestamptz,
         updated_at -> Timestamptz,
     }

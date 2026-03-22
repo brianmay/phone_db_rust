@@ -17,7 +17,7 @@ pub struct Default {
     pub order: Option<i32>,
     pub regexp: Option<String>,
     pub name: Option<String>,
-    pub action: Option<String>,
+    pub action: String,
     pub inserted_at: chrono::DateTime<chrono::Utc>,
     pub updated_at: chrono::DateTime<chrono::Utc>,
 }
@@ -90,7 +90,7 @@ pub struct NewDefault<'a> {
     pub order: Option<i32>,
     pub regexp: Option<&'a str>,
     pub name: Option<&'a str>,
-    pub action: Option<&'a str>,
+    pub action: &'a str,
     pub inserted_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
 }
@@ -102,7 +102,7 @@ impl<'a> NewDefault<'a> {
             order: default.order,
             regexp: default.regexp.as_deref(),
             name: default.name.as_deref(),
-            action: default.action.as_deref(),
+            action: &default.action,
             inserted_at: now,
             updated_at: now,
         }
@@ -129,7 +129,7 @@ pub struct ChangeDefault<'a> {
     pub order: Option<Option<i32>>,
     pub regexp: Option<Option<&'a str>>,
     pub name: Option<Option<&'a str>>,
-    pub action: Option<Option<&'a str>>,
+    pub action: Option<&'a str>,
     pub inserted_at: Option<DateTime<Utc>>,
     pub updated_at: Option<DateTime<Utc>>,
 }
@@ -140,7 +140,7 @@ impl<'a> ChangeDefault<'a> {
             order: default.order.into_option(),
             regexp: default.regexp.map_inner_deref().into_option(),
             name: default.name.map_inner_deref().into_option(),
-            action: default.action.map_inner_deref().into_option(),
+            action: default.action.as_deref().into_option(),
             inserted_at: None,
             updated_at: Some(Utc::now()),
         }

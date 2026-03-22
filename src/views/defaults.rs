@@ -42,9 +42,7 @@ fn EntryRow(default: Default, selected: Signal<Option<DefaultId>>) -> Element {
             }
             td { class: "block sm:table-cell border-blue-300 sm:border-t-2",
                 span { class: "sm:hidden", "Action: " }
-                if let Some(action) = &default.action {
-                    {action.clone()}
-                }
+                {default.action.clone()}
             }
         }
 

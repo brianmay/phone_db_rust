@@ -38,7 +38,7 @@ pub struct Default {
     pub order: Option<i32>,
     pub regexp: Option<String>,
     pub name: Option<String>,
-    pub action: Option<String>,
+    pub action: String,
     pub inserted_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
 }
@@ -65,7 +65,7 @@ pub struct NewDefault {
     pub order: Option<i32>,
     pub regexp: Option<String>,
     pub name: Option<String>,
-    pub action: Option<String>,
+    pub action: String,
 }
 
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq)]
@@ -74,7 +74,7 @@ pub struct ChangeDefault {
     pub order: MaybeSet<Option<i32>>,
     pub regexp: MaybeSet<Option<String>>,
     pub name: MaybeSet<Option<String>>,
-    pub action: MaybeSet<Option<String>>,
+    pub action: MaybeSet<String>,
 }
 
 #[cfg(feature = "server")]

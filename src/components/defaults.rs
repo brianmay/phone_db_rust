@@ -8,7 +8,7 @@ use thiserror::Error;
 use crate::{
     forms::{
         Dialog, EditError, FieldValue, FormSaveCancelButton, InputString, Saving, ValidationError,
-        validate_default_name, validate_regex,
+        validate_action, validate_default_name, validate_regex,
     },
     functions::defaults::{create_default, delete_default, update_default},
     models::{
@@ -16,10 +16,6 @@ use crate::{
         defaults::{ChangeDefault, Default, DefaultId, NewDefault},
     },
 };
-
-fn validate_optional_string(str: &str) -> Result<Option<String>, ValidationError> {
-    <Option<String> as FieldValue>::from_raw(str).map_err(|err| ValidationError(err.to_string()))
-}
 
 fn validate_optional_order(str: &str) -> Result<Option<i32>, ValidationError> {
     <Option<i32> as FieldValue>::from_raw(str).map_err(|err| ValidationError(err.to_string()))
@@ -36,7 +32,7 @@ struct Validate {
     order: Memo<Result<Option<i32>, ValidationError>>,
     regexp: Memo<Result<Option<String>, ValidationError>>,
     name: Memo<Result<Option<String>, ValidationError>>,
-    action: Memo<Result<Option<String>, ValidationError>>,
+    action: Memo<Result<String, ValidationError>>,
 }
 
 async fn do_save(op: &Operation, validate: &Validate) -> Result<Default, EditError> {
@@ -96,7 +92,7 @@ pub fn DefaultUpdate(op: Operation, on_cancel: Callback, on_save: Callback<Defau
         order: use_memo(move || validate_optional_order(&order())),
         regexp: use_memo(move || validate_regex(&regexp())),
         name: use_memo(move || validate_default_name(&name())),
-        action: use_memo(move || validate_optional_string(&action())),
+        action: use_memo(move || validate_action(&action())),
     };
 
     let mut saving = use_signal(|| Saving::No);
@@ -374,10 +370,6 @@ pub fn DefaultSummary(default: Default) -> Element {
                 {name.clone()}
             }
         }
-        div {
-            if let Some(action) = &default.action {
-                {action.clone()}
-            }
-        }
+        div { {default.action.clone()} }
     }
 }

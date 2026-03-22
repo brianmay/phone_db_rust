@@ -170,7 +170,7 @@ pub async fn post_handler(
 
                         let name = default.and_then(|d| d.name.clone());
                         let action = default
-                            .and_then(|d| d.action.clone())
+                            .map(|d| d.action.clone())
                             .unwrap_or_else(|| "allow".to_string());
 
                         let request = NewContact {
