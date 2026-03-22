@@ -60,7 +60,7 @@ derive-enum-all-values = "0.2.1"
 ldap3 = { version = "0.12.1", optional = true }
 bb8 = { version = "0.9.1", optional = true }
 axum-extra = { version = "0.12.5", features = ["typed-header"], optional = true }
-regex = { version = "1.10.5" }
+regex = { version = "1.12.3" }
 
 [features]
 default = ["web"]
