@@ -19,12 +19,6 @@ pub use oidc::middleware::ClientState as OidcClientState;
 // The entry point for the server
 #[cfg(feature = "server")]
 pub fn init(app: fn() -> Element) {
-    tracing_subscriber::fmt()
-        .with_max_level(tracing::Level::TRACE)
-        .with_target(true)
-        .with_line_number(true)
-        .init();
-
     use axum_login::AuthManagerLayerBuilder;
     use oidc::middleware::add_oidc_middleware;
     use tap::Pipe;
