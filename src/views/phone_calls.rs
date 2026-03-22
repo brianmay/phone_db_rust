@@ -66,17 +66,6 @@ fn EntryRow(
             tr {
                 td { colspan: "6", class: "block sm:table-cell",
                     div { class: "flex gap-2",
-                        ChangeButton {
-                            on_click: move |_| {
-                                navigator()
-                                    .push(Route::PhoneCallList {
-                                        dialog: ListDialogReference::Update {
-                                            contact_id: contact.id,
-                                        },
-                                    });
-                            },
-                            "Edit"
-                        }
                         NavButton {
                             on_click: move |_| {
                                 navigator()
@@ -87,6 +76,17 @@ fn EntryRow(
                                     });
                             },
                             "View"
+                        }
+                        ChangeButton {
+                            on_click: move |_| {
+                                navigator()
+                                    .push(Route::PhoneCallList {
+                                        dialog: ListDialogReference::Update {
+                                            contact_id: contact.id,
+                                        },
+                                    });
+                            },
+                            "Edit"
                         }
                     }
                 }
