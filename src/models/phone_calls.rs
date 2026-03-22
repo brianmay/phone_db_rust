@@ -42,6 +42,7 @@ pub struct PhoneCall {
     pub action: String,
     pub contact_id: ContactId,
     pub destination_number: Option<String>,
+    pub source_number: String,
     pub inserted_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
 }
@@ -52,6 +53,7 @@ pub struct NewPhoneCall {
     pub action: String,
     pub contact_id: ContactId,
     pub destination_number: Option<String>,
+    pub source_number: String,
 }
 
 #[cfg(feature = "server")]
@@ -60,4 +62,5 @@ pub struct ChangePhoneCall {
     pub action: MaybeSet<String>,
     pub contact_id: MaybeSet<ContactId>,
     pub destination_number: MaybeSet<Option<String>>,
+    pub source_number: MaybeSet<String>,
 }

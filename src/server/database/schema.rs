@@ -65,6 +65,8 @@ diesel::table! {
         updated_at -> Timestamptz,
         #[max_length = 255]
         destination_number -> Nullable<Varchar>,
+        #[max_length = 255]
+        source_number -> Varchar,
     }
 }
 

@@ -41,13 +41,21 @@ fn EntryRow(
                 }
             }
             td { class: "block sm:table-cell border-blue-300 sm:border-t-2",
-                ContactSummary { contact: contact.clone() }
+                span { class: "sm:hidden", "Contact: " }
+                div { class: "md:pl-0 pl-4",
+                    ContactSummary { contact: contact.clone() }
+                }
             }
             td { class: "block sm:table-cell border-blue-300 sm:border-t-2",
                 span { class: "sm:hidden", "Action: " }
                 {phone_call.action.clone()}
             }
             td { class: "block sm:table-cell border-blue-300 sm:border-t-2",
+                span { class: "sm:hidden", "Source: " }
+                {phone_call.source_number.clone()}
+            }
+            td { class: "block sm:table-cell border-blue-300 sm:border-t-2",
+                span { class: "sm:hidden", "Destination: " }
                 if let Some(dest) = &phone_call.destination_number {
                     {dest.clone()}
                 }
@@ -144,13 +152,14 @@ pub fn PhoneCallList(dialog: ReadSignal<Option<ListDialogReference>>) -> Element
                         thead { class: "hidden sm:table-header-group",
                             tr {
                                 th { "Time" }
-                                th { "Contact ID" }
+                                th { "Contact" }
                                 th { "Action" }
+                                th { "Source" }
                                 th { "Destination" }
                             }
                         }
                         tbody { class: "block sm:table-row-group",
-                            for (phone_call, contact) in list.iter() {
+                            for (phone_call , contact) in list.iter() {
                                 EntryRow {
                                     phone_call: phone_call.clone(),
                                     contact: contact.clone(),

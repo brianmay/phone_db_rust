@@ -188,6 +188,7 @@ pub async fn post_handler(
                     action: contact.action.clone(),
                     contact_id: contact.id,
                     destination_number: Some(request.destination_number.clone()),
+                    source_number: request.phone_number.clone(),
                 };
 
                 let phone_call = phone_calls::create_phone_call(conn, new_phone_call).await?;
