@@ -24,39 +24,6 @@ pub async fn get_user_by_id(
         .map_err(Error::from)
 }
 
-// pub async fn get_user_by_username(
-//     conn: &mut database::DatabaseConnection,
-//     username: &str,
-// ) -> Result<Option<models::User>, Error> {
-//     users::get_user_by_username(conn, username)
-//         .await
-//         .map(|x| x.map(|y| y.into()))
-//         .map_err(database::Error::from)
-//         .map_err(Error::from)
-// }
-
-// pub async fn get_user_by_oidc_id(
-//     conn: &mut database::DatabaseConnection,
-//     oidc_id: &str,
-// ) -> Result<Option<models::User>, Error> {
-//     users::get_user_by_oidc_id(conn, oidc_id)
-//         .await
-//         .map(|x| x.map(|y| y.into()))
-//         .map_err(database::Error::from)
-//         .map_err(Error::from)
-// }
-
-// pub async fn get_user_by_email(
-//     conn: &mut database::DatabaseConnection,
-//     email: &str,
-// ) -> Result<Option<models::User>, Error> {
-//     users::get_user_by_email(conn, email)
-//         .await
-//         .map(|x| x.map(|y| y.into()))
-//         .map_err(database::Error::from)
-//         .map_err(Error::from)
-// }
-
 pub async fn get_users(
     conn: &mut database::DatabaseConnection,
 ) -> Result<Vec<models::User>, Error> {
@@ -78,7 +45,8 @@ pub async fn create_user(
 ) -> Result<models::User, Error> {
     let new_user = users::NewUser::from_front_end(&user, hashed_password);
 
-    conn.transaction::<_, Error, _>(|conn| {
+    conn.transaction::<_, Error, _>(move |conn| {
+        let new_user = new_user.clone();
         Box::pin(async move {
             let user: models::User = users::create_user(conn, new_user)
                 .await
@@ -98,10 +66,12 @@ pub async fn update_user(
     hashed_password: Option<String>,
 ) -> Result<models::User, Error> {
     let updates = users::UpdateUser::from_front_end(&change_user, hashed_password);
+    let old_user_id = old_user.id.as_inner();
 
-    conn.transaction::<_, Error, _>(|conn| {
+    conn.transaction::<_, Error, _>(move |conn| {
+        let updates = updates.clone();
         Box::pin(async move {
-            let user: models::User = users::update_user(conn, old_user.id.as_inner(), updates)
+            let user: models::User = users::update_user(conn, old_user_id, updates)
                 .await
                 .map(|x| x.into())
                 .map_err(Error::from)?;
@@ -116,9 +86,11 @@ pub async fn delete_user(
     conn: &mut database::DatabaseConnection,
     old_user: models::User,
 ) -> Result<(), Error> {
-    conn.transaction::<_, Error, _>(|conn| {
+    let old_user_id = old_user.id.as_inner();
+
+    conn.transaction::<_, Error, _>(move |conn| {
         Box::pin(async move {
-            crate::server::database::models::users::delete_user(conn, old_user.id.as_inner())
+            crate::server::database::models::users::delete_user(conn, old_user_id)
                 .await
                 .map_err(Error::from)?;
 

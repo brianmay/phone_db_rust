@@ -86,23 +86,23 @@ pub async fn get_default_by_id(
 #[derive(Insertable, Debug, Clone)]
 #[diesel(check_for_backend(diesel::pg::Pg))]
 #[diesel(table_name = schema::defaults)]
-pub struct NewDefault<'a> {
+pub struct NewDefault {
     pub order: Option<i32>,
-    pub regexp: Option<&'a str>,
-    pub name: Option<&'a str>,
-    pub action: &'a str,
+    pub regexp: Option<String>,
+    pub name: Option<String>,
+    pub action: String,
     pub inserted_at: DateTime<Utc>,
     pub updated_at: DateTime<Utc>,
 }
 
-impl<'a> NewDefault<'a> {
-    pub fn from_front_end(default: &'a model::NewDefault) -> Self {
+impl NewDefault {
+    pub fn from_front_end(default: &model::NewDefault) -> Self {
         let now = chrono::Utc::now();
         Self {
             order: default.order,
-            regexp: default.regexp.as_deref(),
-            name: default.name.as_deref(),
-            action: &default.action,
+            regexp: default.regexp.clone(),
+            name: default.name.clone(),
+            action: default.action.clone(),
             inserted_at: now,
             updated_at: now,
         }
@@ -111,12 +111,12 @@ impl<'a> NewDefault<'a> {
 
 pub async fn create_default(
     conn: &mut DatabaseConnection,
-    update: &NewDefault<'_>,
+    update: NewDefault,
 ) -> Result<Default, diesel::result::Error> {
     use crate::server::database::schema::defaults::table;
 
     diesel::insert_into(table)
-        .values(update)
+        .values(&update)
         .returning(Default::as_returning())
         .get_result(conn)
         .await
@@ -125,22 +125,22 @@ pub async fn create_default(
 #[derive(AsChangeset, Debug, Clone)]
 #[diesel(check_for_backend(diesel::pg::Pg))]
 #[diesel(table_name = schema::defaults)]
-pub struct ChangeDefault<'a> {
+pub struct ChangeDefault {
     pub order: Option<Option<i32>>,
-    pub regexp: Option<Option<&'a str>>,
-    pub name: Option<Option<&'a str>>,
-    pub action: Option<&'a str>,
+    pub regexp: Option<Option<String>>,
+    pub name: Option<Option<String>>,
+    pub action: Option<String>,
     pub inserted_at: Option<DateTime<Utc>>,
     pub updated_at: Option<DateTime<Utc>>,
 }
 
-impl<'a> ChangeDefault<'a> {
-    pub fn from_front_end(default: &'a model::ChangeDefault) -> Self {
+impl ChangeDefault {
+    pub fn from_front_end(default: &model::ChangeDefault) -> Self {
         Self {
             order: default.order.into_option(),
-            regexp: default.regexp.map_inner_deref().into_option(),
-            name: default.name.map_inner_deref().into_option(),
-            action: default.action.as_deref().into_option(),
+            regexp: default.regexp.clone().into_option(),
+            name: default.name.clone().into_option(),
+            action: default.action.clone().into_option(),
             inserted_at: None,
             updated_at: Some(Utc::now()),
         }
@@ -150,13 +150,13 @@ impl<'a> ChangeDefault<'a> {
 pub async fn update_default(
     conn: &mut DatabaseConnection,
     id: i64,
-    update: &ChangeDefault<'_>,
+    update: ChangeDefault,
 ) -> Result<Default, diesel::result::Error> {
     use crate::server::database::schema::defaults::dsl as q;
     use crate::server::database::schema::defaults::table;
 
     diesel::update(table.filter(q::id.eq(id)))
-        .set(update)
+        .set(&update)
         .returning(Default::as_returning())
         .get_result(conn)
         .await

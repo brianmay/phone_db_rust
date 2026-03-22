@@ -17,7 +17,7 @@ use crate::server::ldap::query::Error as LdapError;
 #[derive(Error, Debug)]
 pub enum AppError {
     #[error("Database pool error: {0}")]
-    DbPool(#[from] mobc::Error<PoolError>),
+    DbPool(#[from] bb8::RunError<PoolError>),
 
     #[error("Database error: {0}")]
     Db(#[from] diesel::result::Error),

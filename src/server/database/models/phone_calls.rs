@@ -96,23 +96,23 @@ pub async fn get_phone_call_by_id(
 #[derive(Insertable, Debug, Clone)]
 #[diesel(check_for_backend(diesel::pg::Pg))]
 #[diesel(table_name = schema::phone_calls)]
-pub struct NewPhoneCall<'a> {
-    pub action: &'a str,
+pub struct NewPhoneCall {
+    pub action: String,
     pub contact_id: i64,
-    pub destination_number: Option<&'a str>,
-    pub source_number: &'a str,
+    pub destination_number: Option<String>,
+    pub source_number: String,
     pub inserted_at: chrono::DateTime<chrono::Utc>,
     pub updated_at: chrono::DateTime<chrono::Utc>,
 }
 
-impl<'a> NewPhoneCall<'a> {
-    pub fn from_front_end(phone_call: &'a model::NewPhoneCall) -> Self {
+impl NewPhoneCall {
+    pub fn from_front_end(phone_call: &model::NewPhoneCall) -> Self {
         let now = chrono::Utc::now();
         Self {
-            action: phone_call.action.as_ref(),
+            action: phone_call.action.clone(),
             contact_id: phone_call.contact_id.as_inner(),
-            destination_number: phone_call.destination_number.as_deref(),
-            source_number: phone_call.source_number.as_ref(),
+            destination_number: phone_call.destination_number.clone(),
+            source_number: phone_call.source_number.clone(),
             inserted_at: now,
             updated_at: now,
         }
@@ -121,12 +121,12 @@ impl<'a> NewPhoneCall<'a> {
 
 pub async fn create_phone_call(
     conn: &mut DatabaseConnection,
-    update: &NewPhoneCall<'_>,
+    update: NewPhoneCall,
 ) -> Result<PhoneCall, diesel::result::Error> {
     use crate::server::database::schema::phone_calls::table;
 
     diesel::insert_into(table)
-        .values(update)
+        .values(&update)
         .returning(PhoneCall::as_returning())
         .get_result(conn)
         .await
@@ -135,25 +135,22 @@ pub async fn create_phone_call(
 #[derive(AsChangeset, Debug, Clone)]
 #[diesel(check_for_backend(diesel::pg::Pg))]
 #[diesel(table_name = schema::phone_calls)]
-pub struct ChangePhoneCall<'a> {
-    pub action: Option<&'a str>,
+pub struct ChangePhoneCall {
+    pub action: Option<String>,
     pub contact_id: Option<i64>,
-    pub destination_number: Option<Option<&'a str>>,
-    pub source_number: Option<&'a str>,
+    pub destination_number: Option<Option<String>>,
+    pub source_number: Option<String>,
     pub inserted_at: Option<DateTime<Utc>>,
     pub updated_at: Option<DateTime<Utc>>,
 }
 
-impl<'a> ChangePhoneCall<'a> {
-    pub fn from_front_end(phone_call: &'a model::ChangePhoneCall) -> Self {
+impl ChangePhoneCall {
+    pub fn from_front_end(phone_call: &model::ChangePhoneCall) -> Self {
         Self {
-            action: phone_call.action.as_deref().into_option(),
+            action: phone_call.action.clone().into_option(),
             contact_id: phone_call.contact_id.map(|x| x.as_inner()).into_option(),
-            destination_number: phone_call
-                .destination_number
-                .map_inner_deref()
-                .into_option(),
-            source_number: phone_call.source_number.as_deref().into_option(),
+            destination_number: phone_call.destination_number.clone().into_option(),
+            source_number: phone_call.source_number.clone().into_option(),
             inserted_at: None,
             updated_at: Some(Utc::now()),
         }

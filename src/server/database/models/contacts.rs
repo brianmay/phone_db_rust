@@ -131,23 +131,23 @@ pub async fn get_contact_by_phone_number(
 #[derive(Insertable, Debug, Clone)]
 #[diesel(check_for_backend(diesel::pg::Pg))]
 #[diesel(table_name = schema::contacts)]
-pub struct NewContact<'a> {
-    pub phone_number: &'a str,
-    pub name: Option<&'a str>,
-    pub action: &'a str,
-    pub comments: Option<&'a str>,
+pub struct NewContact {
+    pub phone_number: String,
+    pub name: Option<String>,
+    pub action: String,
+    pub comments: Option<String>,
     pub inserted_at: chrono::DateTime<chrono::Utc>,
     pub updated_at: chrono::DateTime<chrono::Utc>,
 }
 
-impl<'a> NewContact<'a> {
-    pub fn from_front_end(contact: &'a model::NewContact) -> Self {
+impl NewContact {
+    pub fn from_front_end(contact: &model::NewContact) -> Self {
         let now = chrono::Utc::now();
         Self {
-            phone_number: &contact.phone_number,
-            name: contact.name.as_deref(),
-            action: &contact.action,
-            comments: contact.comments.as_deref(),
+            phone_number: contact.phone_number.clone(),
+            name: contact.name.clone(),
+            action: contact.action.clone(),
+            comments: contact.comments.clone(),
             inserted_at: now,
             updated_at: now,
         }
@@ -156,12 +156,12 @@ impl<'a> NewContact<'a> {
 
 pub async fn create_contact(
     conn: &mut DatabaseConnection,
-    update: &NewContact<'_>,
+    update: NewContact,
 ) -> Result<Contact, diesel::result::Error> {
     use crate::server::database::schema::contacts::table;
 
     diesel::insert_into(table)
-        .values(update)
+        .values(&update)
         .returning(Contact::as_returning())
         .get_result(conn)
         .await
@@ -170,22 +170,22 @@ pub async fn create_contact(
 #[derive(AsChangeset, Debug, Clone)]
 #[diesel(check_for_backend(diesel::pg::Pg))]
 #[diesel(table_name = schema::contacts)]
-pub struct ChangeContact<'a> {
-    pub phone_number: Option<&'a str>,
-    pub name: Option<Option<&'a str>>,
-    pub action: Option<&'a str>,
-    pub comments: Option<Option<&'a str>>,
+pub struct ChangeContact {
+    pub phone_number: Option<String>,
+    pub name: Option<Option<String>>,
+    pub action: Option<String>,
+    pub comments: Option<Option<String>>,
     pub inserted_at: Option<DateTime<Utc>>,
     pub updated_at: Option<DateTime<Utc>>,
 }
 
-impl<'a> ChangeContact<'a> {
-    pub fn from_front_end(contact: &'a model::ChangeContact) -> Self {
+impl ChangeContact {
+    pub fn from_front_end(contact: &model::ChangeContact) -> Self {
         Self {
-            phone_number: contact.phone_number.as_deref().into_option(),
-            name: contact.name.map_inner_deref().into_option(),
-            action: contact.action.as_deref().into_option(),
-            comments: contact.comments.map_inner_deref().into_option(),
+            phone_number: contact.phone_number.clone().into_option(),
+            name: contact.name.clone().into_option(),
+            action: contact.action.clone().into_option(),
+            comments: contact.comments.clone().into_option(),
             inserted_at: None,
             updated_at: Some(Utc::now()),
         }
@@ -195,13 +195,13 @@ impl<'a> ChangeContact<'a> {
 pub async fn update_contact(
     conn: &mut DatabaseConnection,
     id: i64,
-    update: &ChangeContact<'_>,
+    update: ChangeContact,
 ) -> Result<Contact, diesel::result::Error> {
     use crate::server::database::schema::contacts::dsl as q;
     use crate::server::database::schema::contacts::table;
 
     diesel::update(table.filter(q::id.eq(id)))
-        .set(update)
+        .set(&update)
         .returning(Contact::as_returning())
         .get_result(conn)
         .await

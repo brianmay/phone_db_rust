@@ -46,10 +46,11 @@ pub async fn create_phone_call(
 ) -> Result<models::PhoneCall, Error> {
     let new_phone_call = phone_calls::NewPhoneCall::from_front_end(&phone_call);
 
-    conn.transaction::<_, Error, _>(|conn| {
+    conn.transaction::<_, Error, _>(move |conn| {
+        let new_phone_call = new_phone_call.clone();
         Box::pin(async move {
             let phone_call: models::PhoneCall =
-                phone_calls::create_phone_call(conn, &new_phone_call)
+                phone_calls::create_phone_call(conn, new_phone_call)
                     .await
                     .map(|x| x.into())
                     .map_err(Error::from)?;

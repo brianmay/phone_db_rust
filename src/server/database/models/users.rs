@@ -79,26 +79,26 @@ impl From<User> for model::User {
 #[derive(Insertable, Debug, Clone)]
 #[diesel(check_for_backend(diesel::pg::Pg))]
 #[diesel(table_name = schema::users)]
-pub struct NewUser<'a> {
-    pub username: &'a str,
-    pub password: &'a str,
-    pub full_name: &'a str,
-    pub oidc_id: Option<&'a str>,
-    pub email: &'a str,
+pub struct NewUser {
+    pub username: String,
+    pub password: String,
+    pub full_name: String,
+    pub oidc_id: Option<String>,
+    pub email: String,
     pub is_admin: bool,
     pub created_at: chrono::DateTime<chrono::Utc>,
     pub updated_at: chrono::DateTime<chrono::Utc>,
 }
 
-impl<'a> NewUser<'a> {
-    pub fn from_front_end(user: &'a model::NewUser, hashed_password: &'a str) -> Self {
+impl NewUser {
+    pub fn from_front_end(user: &model::NewUser, hashed_password: &str) -> Self {
         let now = chrono::Utc::now();
         Self {
-            username: &user.username,
-            password: hashed_password,
-            full_name: &user.full_name,
-            oidc_id: user.oidc_id.as_deref(),
-            email: &user.email,
+            username: user.username.clone(),
+            password: hashed_password.to_string(),
+            full_name: user.full_name.clone(),
+            oidc_id: user.oidc_id.clone(),
+            email: user.email.clone(),
             is_admin: user.is_admin,
             created_at: now,
             updated_at: now,
@@ -109,25 +109,25 @@ impl<'a> NewUser<'a> {
 #[derive(AsChangeset, Debug, Clone)]
 #[diesel(check_for_backend(diesel::pg::Pg))]
 #[diesel(table_name = schema::users)]
-pub struct UpdateUser<'a> {
-    pub username: Option<&'a str>,
+pub struct UpdateUser {
+    pub username: Option<String>,
     pub password: Option<String>,
-    pub full_name: Option<&'a str>,
-    pub oidc_id: Option<Option<&'a str>>,
-    pub email: Option<&'a str>,
+    pub full_name: Option<String>,
+    pub oidc_id: Option<Option<String>>,
+    pub email: Option<String>,
     pub is_admin: Option<bool>,
     pub created_at: Option<chrono::DateTime<chrono::Utc>>,
     pub updated_at: Option<chrono::DateTime<chrono::Utc>>,
 }
 
-impl<'a> UpdateUser<'a> {
-    pub fn from_front_end(user: &'a model::ChangeUser, hashed_password: Option<String>) -> Self {
+impl UpdateUser {
+    pub fn from_front_end(user: &model::ChangeUser, hashed_password: Option<String>) -> Self {
         Self {
-            username: user.username.as_deref().into_option(),
+            username: user.username.clone().into_option(),
             password: hashed_password,
-            full_name: user.full_name.as_deref().into_option(),
-            oidc_id: user.oidc_id.map_inner_deref().into_option(),
-            email: user.email.as_deref().into_option(),
+            full_name: user.full_name.clone().into_option(),
+            oidc_id: user.oidc_id.clone().into_option(),
+            email: user.email.clone().into_option(),
             is_admin: user.is_admin.into_option(),
             created_at: None,
             updated_at: Some(chrono::Utc::now()),
@@ -212,7 +212,7 @@ pub async fn get_users(conn: &mut DatabaseConnection) -> Result<Vec<User>, diese
 
 pub async fn create_user(
     conn: &mut DatabaseConnection,
-    updates: NewUser<'_>,
+    updates: NewUser,
 ) -> Result<User, diesel::result::Error> {
     use schema::users::table;
 
@@ -226,7 +226,7 @@ pub async fn create_user(
 pub async fn update_user(
     conn: &mut DatabaseConnection,
     id: i64,
-    updates: UpdateUser<'_>,
+    updates: UpdateUser,
 ) -> Result<User, diesel::result::Error> {
     use schema::users::id as q_id;
     use schema::users::table;

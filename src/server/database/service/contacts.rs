@@ -57,10 +57,15 @@ pub async fn create_contact(
     contact: models::NewContact,
 ) -> Result<models::Contact, Error> {
     let new_contact = contacts::NewContact::from_front_end(&contact);
+    let base_dn = base_dn.to_string();
+    let ldap = ldap.clone();
 
-    conn.transaction::<_, Error, _>(|conn| {
+    conn.transaction::<_, Error, _>(move |conn| {
+        let base_dn = base_dn.clone();
+        let mut ldap = ldap.clone();
+        let new_contact = new_contact.clone();
         Box::pin(async move {
-            let contact = contacts::create_contact(conn, &new_contact)
+            let contact = contacts::create_contact(conn, new_contact)
                 .await
                 .map_err(Error::from)?;
 
@@ -71,8 +76,8 @@ pub async fn create_contact(
             update_ldap_contact_from_contact(
                 &model_contact.phone_number,
                 &model_contact,
-                base_dn,
-                ldap,
+                &base_dn,
+                &mut ldap,
             )
             .await
             .map_err(Error::from)?;
@@ -91,10 +96,18 @@ pub async fn update_contact(
     change_contact: models::ChangeContact,
 ) -> Result<models::Contact, Error> {
     let updates = contacts::ChangeContact::from_front_end(&change_contact);
+    let old_contact_id = old_contact.id.as_inner();
+    let old_phone_number = old_contact.phone_number.clone();
+    let base_dn = base_dn.to_string();
+    let ldap = ldap.clone();
 
-    conn.transaction::<_, Error, _>(|conn| {
+    conn.transaction::<_, Error, _>(move |conn| {
+        let base_dn = base_dn.clone();
+        let mut ldap = ldap.clone();
+        let updates = updates.clone();
+        let old_phone_number = old_phone_number.clone();
         Box::pin(async move {
-            let contact = contacts::update_contact(conn, old_contact.id.as_inner(), &updates)
+            let contact = contacts::update_contact(conn, old_contact_id, updates)
                 .await
                 .map_err(Error::from)?;
 
@@ -107,10 +120,10 @@ pub async fn update_contact(
             let model_contact = contact.into_model(count);
 
             update_ldap_contact_from_contact(
-                &old_contact.phone_number,
+                &old_phone_number,
                 &model_contact,
-                base_dn,
-                ldap,
+                &base_dn,
+                &mut ldap,
             )
             .await
             .map_err(Error::from)?;
@@ -127,18 +140,23 @@ pub async fn delete_contact(
     ldap: &mut ldap::LdapConnection,
     old_contact: models::Contact,
 ) -> Result<(), Error> {
-    conn.transaction::<_, Error, _>(|conn| {
+    let old_contact_id = old_contact.id.as_inner();
+    let old_phone_number = old_contact.phone_number.clone();
+    let base_dn = base_dn.to_string();
+    let ldap = ldap.clone();
+
+    conn.transaction::<_, Error, _>(move |conn| {
+        let base_dn = base_dn.clone();
+        let mut ldap = ldap.clone();
+        let old_phone_number = old_phone_number.clone();
         Box::pin(async move {
-            crate::server::database::models::contacts::delete_contact(
-                conn,
-                old_contact.id.as_inner(),
-            )
-            .await
-            .map_err(Error::from)?;
+            crate::server::database::models::contacts::delete_contact(conn, old_contact_id)
+                .await
+                .map_err(Error::from)?;
 
             use crate::server::ldap::query::delete_ldap_contact_from_phone_number;
 
-            delete_ldap_contact_from_phone_number(&old_contact.phone_number, base_dn, ldap)
+            delete_ldap_contact_from_phone_number(&old_phone_number, &base_dn, &mut ldap)
                 .await
                 .map_err(Error::from)?;
 

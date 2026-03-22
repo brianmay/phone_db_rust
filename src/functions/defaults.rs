@@ -49,21 +49,25 @@ pub async fn update_default(
 ) -> Result<models::Default, ServerFnError> {
     let _logged_in_user_id = get_user_id().await?;
 
-    let conn = get_database_connection().await?;
+    let mut conn = get_database_connection().await?;
 
-    crate::server::database::service::defaults::update_default(conn, old_default, change_default)
-        .await
-        .map_err(AppError::from)
-        .map_err(ServerFnError::from)
+    crate::server::database::service::defaults::update_default(
+        &mut conn,
+        old_default,
+        change_default,
+    )
+    .await
+    .map_err(AppError::from)
+    .map_err(ServerFnError::from)
 }
 
 #[server]
 pub async fn delete_default(old_default: models::Default) -> Result<(), ServerFnError> {
     let _logged_in_user_id = get_user_id().await?;
 
-    let conn = get_database_connection().await?;
+    let mut conn = get_database_connection().await?;
 
-    crate::server::database::service::defaults::delete_default(conn, old_default)
+    crate::server::database::service::defaults::delete_default(&mut conn, old_default)
         .await
         .map_err(AppError::from)
         .map_err(ServerFnError::from)

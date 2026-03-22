@@ -143,10 +143,7 @@ impl Client {
 
         let is_admin = groups.contains(&"admin".to_string());
 
-        let mut conn = pool
-            .get()
-            .await
-            .map_err(database::connection::Error::Mobc)?;
+        let mut conn = pool.get().await.map_err(database::connection::Error::Bb8)?;
 
         let user = get_user_by_oidc_id(&mut conn, &user_info.sub)
             .await
@@ -164,7 +161,7 @@ impl Client {
         let user = if let Some(user) = user {
             let updates = database::models::users::UpdateUser {
                 full_name: None,
-                oidc_id: Some(Some(user_info.sub.as_str())),
+                oidc_id: Some(Some(user_info.sub.clone())),
                 email: None,
                 is_admin: Some(is_admin),
                 username: None,
@@ -178,12 +175,12 @@ impl Client {
                 .map_err(database::connection::Error::Diesel)?
         } else {
             let updates = database::models::users::NewUser {
-                full_name: name.as_str(),
-                oidc_id: Some(user_info.sub.as_str()),
-                email: email.as_str(),
+                full_name: name.clone(),
+                oidc_id: Some(user_info.sub.clone()),
+                email: email.clone(),
                 is_admin,
-                username: name.as_str(),
-                password: "",
+                username: name.clone(),
+                password: String::new(),
                 created_at: now,
                 updated_at: now,
             };

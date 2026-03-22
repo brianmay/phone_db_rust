@@ -1,4 +1,5 @@
 use std::env;
+use std::ops::Deref;
 use std::sync::Arc;
 
 use axum::response::IntoResponse;
@@ -151,13 +152,16 @@ pub async fn post_handler(
 
     let mut conn = db.get().await.map_err(database::Error::from)?;
     let base_dn = ldap.base_dn().to_string();
-    let mut ldap_conn = ldap.get().await.map_err(LdapError::from)?;
+    let ldap_conn = ldap.get().await.map_err(LdapError::from)?;
+    let ldap_conn = ldap_conn.deref().clone();
 
     let contact = contacts::get_contact_by_phone_number(&mut conn, &request.phone_number).await?;
     let request_clone = request.clone();
 
     let (phone_call, contact) = conn
-        .transaction::<_, Error, _>(|conn| {
+        .transaction::<_, Error, _>(move |conn| {
+            let base_dn = base_dn.clone();
+            let mut ldap_conn = ldap_conn.clone();
             Box::pin(async move {
                 let contact = match contact {
                     Some(contact) => contact,
