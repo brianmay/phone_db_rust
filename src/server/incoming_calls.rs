@@ -49,17 +49,8 @@ pub struct IncomingPhoneCallRequest {
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct PhoneCallDetails {
     pub id: i64,
+    pub name: Option<String>,
     pub action: String,
-    pub contact_id: i64,
-    pub contact_name: Option<String>,
-    pub contact_phone_number: String,
-    pub contact_action: String,
-    pub contact_comments: Option<String>,
-    pub phone_number: String,
-    pub destination_number: Option<String>,
-    pub inserted_at: DateTime<Utc>,
-    pub updated_at: DateTime<Utc>,
-    pub number_calls: Option<i64>,
 }
 
 #[derive(Error, Debug)]
@@ -204,17 +195,8 @@ pub async fn post_handler(
 
     let details = PhoneCallDetails {
         id: phone_call.id.as_inner(),
+        name: contact.name.clone(),
         action: phone_call.action.clone(),
-        contact_id: contact.id.as_inner(),
-        contact_name: contact.name.clone(),
-        contact_phone_number: contact.phone_number.clone(),
-        contact_action: contact.action.clone(),
-        contact_comments: contact.comments.clone(),
-        phone_number: request_clone.phone_number,
-        destination_number: Some(request_clone.destination_number),
-        inserted_at: phone_call.inserted_at,
-        updated_at: phone_call.updated_at,
-        number_calls: Some(contact.phone_call_count),
     };
 
     _ = tx.send((phone_call, contact));
