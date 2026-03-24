@@ -110,18 +110,37 @@ async fn add_ldap_contact(
 
 async fn update_ldap_contact(
     request: UpdateLdapContact,
+    base_dn: &str,
     conn: &mut LdapConnection,
 ) -> Result<(), Error> {
-    let dn = &request.dn.0;
+    let old_dn = &request.dn.0;
+
+    // If the phone number changed we must rename the entry via ModifyDN before
+    // touching any other attributes, because telephoneNumber forms the RDN and
+    // cannot be changed with a plain Modify operation.
+    let current_dn = if let Some(ref new_number) = request.telephone_number {
+        let new_rdn = format!("telephoneNumber={}", filters::escape_dn_value(new_number));
+        // Extract the existing RDN (everything before the first ',').
+        let old_rdn = old_dn.split_once(',').map(|(rdn, _)| rdn).unwrap_or(old_dn);
+        if old_rdn != new_rdn {
+            conn.modifydn(old_dn, &new_rdn, true, None)
+                .await?
+                .success()?;
+            format!("{},{}", new_rdn, base_dn)
+        } else {
+            old_dn.clone()
+        }
+    } else {
+        old_dn.clone()
+    };
+
+    // Modify only cn/sn — telephoneNumber is handled by ModifyDN above and
+    // must never appear in a Modify on an entry where it forms the RDN.
     let mods = vec![
         Mod::Replace("cn".to_string(), HashSet::from_iter(request.cn.into_iter())),
         Mod::Replace("sn".to_string(), HashSet::from_iter(request.sn.into_iter())),
-        Mod::Replace(
-            "telephoneNumber".to_string(),
-            HashSet::from_iter(request.telephone_number.into_iter()),
-        ),
     ];
-    conn.modify(dn, mods).await?.success()?;
+    conn.modify(&current_dn, mods).await?.success()?;
 
     Ok(())
 }
@@ -176,7 +195,7 @@ pub async fn update_ldap_contact_from_contact(
                     sn: contact.name.clone(),
                     telephone_number: Some(contact.phone_number.clone()),
                 };
-                update_ldap_contact(request, conn).await?;
+                update_ldap_contact(request, base_dn, conn).await?;
             } else {
                 delete_ldap_contact(ldap_contact.dn(), conn).await?;
             }
