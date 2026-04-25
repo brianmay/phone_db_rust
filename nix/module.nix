@@ -81,7 +81,8 @@ in
     systemd.services.phone-db = {
       wantedBy = [ "multi-user.target" ];
       after = [ "postgresql.service" ];
-      wants = [ "postgresql.service" ];
+      requires = [ "postgresql.service" ];
+      partOf = [ "postgresql.service" ];
       serviceConfig = {
         User = "phone_db";
         ExecStart = "${lib.getExe phone-db}";
