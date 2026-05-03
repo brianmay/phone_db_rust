@@ -12,7 +12,6 @@ use diesel_async::AsyncConnection;
 use thiserror::Error;
 use tokio::sync::broadcast;
 
-use chrono::{DateTime, Utc};
 use dioxus::prelude::*;
 use serde::{Deserialize, Serialize};
 
@@ -147,7 +146,6 @@ pub async fn post_handler(
     let ldap_conn = ldap_conn.deref().clone();
 
     let contact = contacts::get_contact_by_phone_number(&mut conn, &request.phone_number).await?;
-    let request_clone = request.clone();
 
     let (phone_call, contact) = conn
         .transaction::<_, Error, _>(move |conn| {
