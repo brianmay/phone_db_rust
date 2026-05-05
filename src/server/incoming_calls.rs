@@ -148,10 +148,8 @@ pub async fn post_handler(
     let contact = contacts::get_contact_by_phone_number(&mut conn, &request.phone_number).await?;
 
     let (phone_call, contact) = conn
-        .transaction::<_, Error, _>(move |conn| {
-            let base_dn = base_dn.clone();
-            let mut ldap_conn = ldap_conn.clone();
-            Box::pin(async move {
+        .transaction::<_, Error, _>(async move |conn| {
+            let mut ldap_conn = ldap_conn;
                 let contact = match contact {
                     Some(contact) => contact,
                     None => {
@@ -187,7 +185,6 @@ pub async fn post_handler(
                 let phone_call = phone_calls::create_phone_call(conn, new_phone_call).await?;
 
                 Ok((phone_call, contact))
-            })
         })
         .await?;
 
