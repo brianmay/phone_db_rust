@@ -59,16 +59,13 @@ pub async fn create_default(
 ) -> Result<models::Default, Error> {
     let new_default = defaults::NewDefault::from_front_end(&default);
 
-    conn.transaction::<_, Error, _>(move |conn| {
-        let new_default = new_default.clone();
-        Box::pin(async move {
-            let default: models::Default = defaults::create_default(conn, new_default)
-                .await
-                .map(|x| x.into())
-                .map_err(Error::from)?;
+    conn.transaction::<_, Error, _>(async move |conn| {
+        let default: models::Default = defaults::create_default(conn, new_default)
+            .await
+            .map(|x| x.into())
+            .map_err(Error::from)?;
 
-            Ok(default)
-        })
+        Ok(default)
     })
     .await
 }
@@ -80,16 +77,13 @@ pub async fn update_default(
 ) -> Result<models::Default, Error> {
     let updates = defaults::ChangeDefault::from_front_end(&change_default);
     let old_default_id = old_default.id.as_inner();
-    conn.transaction::<_, Error, _>(move |conn| {
-        let updates = updates.clone();
-        Box::pin(async move {
-            let default: models::Default = defaults::update_default(conn, old_default_id, updates)
-                .await
-                .map(|x| x.into())
-                .map_err(Error::from)?;
+    conn.transaction::<_, Error, _>(async move |conn| {
+        let default: models::Default = defaults::update_default(conn, old_default_id, updates)
+            .await
+            .map(|x| x.into())
+            .map_err(Error::from)?;
 
-            Ok(default)
-        })
+        Ok(default)
     })
     .await
 }
@@ -100,14 +94,12 @@ pub async fn delete_default(
 ) -> Result<(), Error> {
     let old_default_id = old_default.id.as_inner();
 
-    conn.transaction::<_, Error, _>(move |conn| {
-        Box::pin(async move {
-            crate::server::database::models::defaults::delete_default(conn, old_default_id)
-                .await
-                .map_err(Error::from)?;
+    conn.transaction::<_, Error, _>(async move |conn| {
+        crate::server::database::models::defaults::delete_default(conn, old_default_id)
+            .await
+            .map_err(Error::from)?;
 
-            Ok(())
-        })
+        Ok(())
     })
     .await
 }

@@ -45,16 +45,13 @@ pub async fn create_user(
 ) -> Result<models::User, Error> {
     let new_user = users::NewUser::from_front_end(&user, hashed_password);
 
-    conn.transaction::<_, Error, _>(move |conn| {
-        let new_user = new_user.clone();
-        Box::pin(async move {
-            let user: models::User = users::create_user(conn, new_user)
-                .await
-                .map(|x| x.into())
-                .map_err(Error::from)?;
+    conn.transaction::<_, Error, _>(async move |conn| {
+        let user: models::User = users::create_user(conn, new_user)
+            .await
+            .map(|x| x.into())
+            .map_err(Error::from)?;
 
-            Ok(user)
-        })
+        Ok(user)
     })
     .await
 }
@@ -68,16 +65,13 @@ pub async fn update_user(
     let updates = users::UpdateUser::from_front_end(&change_user, hashed_password);
     let old_user_id = old_user.id.as_inner();
 
-    conn.transaction::<_, Error, _>(move |conn| {
-        let updates = updates.clone();
-        Box::pin(async move {
-            let user: models::User = users::update_user(conn, old_user_id, updates)
-                .await
-                .map(|x| x.into())
-                .map_err(Error::from)?;
+    conn.transaction::<_, Error, _>(async move |conn| {
+        let user: models::User = users::update_user(conn, old_user_id, updates)
+            .await
+            .map(|x| x.into())
+            .map_err(Error::from)?;
 
-            Ok(user)
-        })
+        Ok(user)
     })
     .await
 }
@@ -88,14 +82,12 @@ pub async fn delete_user(
 ) -> Result<(), Error> {
     let old_user_id = old_user.id.as_inner();
 
-    conn.transaction::<_, Error, _>(move |conn| {
-        Box::pin(async move {
-            crate::server::database::models::users::delete_user(conn, old_user_id)
-                .await
-                .map_err(Error::from)?;
+    conn.transaction::<_, Error, _>(async move |conn| {
+        crate::server::database::models::users::delete_user(conn, old_user_id)
+            .await
+            .map_err(Error::from)?;
 
-            Ok(())
-        })
+        Ok(())
     })
     .await
 }
