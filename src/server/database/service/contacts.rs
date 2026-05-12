@@ -126,14 +126,9 @@ pub async fn update_contact(
 
         let model_contact = contact.into_model(count);
 
-        update_ldap_contact_from_contact(
-            &old_phone_number,
-            &model_contact,
-            &base_dn,
-            &mut ldap,
-        )
-        .await
-        .map_err(Error::from)?;
+        update_ldap_contact_from_contact(&old_phone_number, &model_contact, &base_dn, &mut ldap)
+            .await
+            .map_err(Error::from)?;
 
         Ok(model_contact)
     })

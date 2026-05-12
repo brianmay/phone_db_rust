@@ -79,11 +79,10 @@ pub async fn create_phone_call(
     let new_phone_call = phone_calls::NewPhoneCall::from_front_end(&phone_call);
 
     conn.transaction::<_, Error, _>(async move |conn| {
-        let phone_call: models::PhoneCall =
-            phone_calls::create_phone_call(conn, new_phone_call)
-                .await
-                .map(|x| x.into())
-                .map_err(Error::from)?;
+        let phone_call: models::PhoneCall = phone_calls::create_phone_call(conn, new_phone_call)
+            .await
+            .map(|x| x.into())
+            .map_err(Error::from)?;
 
         Ok(phone_call)
     })

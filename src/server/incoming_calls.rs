@@ -150,41 +150,41 @@ pub async fn post_handler(
     let (phone_call, contact) = conn
         .transaction::<_, Error, _>(async move |conn| {
             let mut ldap_conn = ldap_conn;
-                let contact = match contact {
-                    Some(contact) => contact,
-                    None => {
-                        let defaults = defaults::get_all_defaults(conn)
-                            .await
-                            .map(DefaultList::new)?;
+            let contact = match contact {
+                Some(contact) => contact,
+                None => {
+                    let defaults = defaults::get_all_defaults(conn)
+                        .await
+                        .map(DefaultList::new)?;
 
-                        let default = defaults.search_phone_number(&request.phone_number);
+                    let default = defaults.search_phone_number(&request.phone_number);
 
-                        let name = default.and_then(|d| d.name.clone());
-                        let action = default
-                            .map(|d| d.action.clone())
-                            .unwrap_or_else(|| "allow".to_string());
+                    let name = default.and_then(|d| d.name.clone());
+                    let action = default
+                        .map(|d| d.action.clone())
+                        .unwrap_or_else(|| "allow".to_string());
 
-                        let request = NewContact {
-                            phone_number: request.phone_number.clone(),
-                            name,
-                            action,
-                            comments: None,
-                        };
+                    let request = NewContact {
+                        phone_number: request.phone_number.clone(),
+                        name,
+                        action,
+                        comments: None,
+                    };
 
-                        contacts::create_contact(conn, &base_dn, &mut ldap_conn, request).await?
-                    }
-                };
+                    contacts::create_contact(conn, &base_dn, &mut ldap_conn, request).await?
+                }
+            };
 
-                let new_phone_call = NewPhoneCall {
-                    action: contact.action.clone(),
-                    contact_id: contact.id,
-                    destination_number: Some(request.destination_number.clone()),
-                    source_number: request.phone_number.clone(),
-                };
+            let new_phone_call = NewPhoneCall {
+                action: contact.action.clone(),
+                contact_id: contact.id,
+                destination_number: Some(request.destination_number.clone()),
+                source_number: request.phone_number.clone(),
+            };
 
-                let phone_call = phone_calls::create_phone_call(conn, new_phone_call).await?;
+            let phone_call = phone_calls::create_phone_call(conn, new_phone_call).await?;
 
-                Ok((phone_call, contact))
+            Ok((phone_call, contact))
         })
         .await?;
 

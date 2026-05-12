@@ -1,0 +1,89 @@
+# GTK3 desktop binding chain — only pulled in via dioxus-desktop (--all-features).
+# Not used in production server/web builds.
+[[PackageOverrides]]
+name = "atk"
+ecosystem = "crates.io"
+vulnerability.ignore = true
+reason = "dioxus-desktop GTK chain only; not used in server/web builds"
+
+[[PackageOverrides]]
+name = "atk-sys"
+ecosystem = "crates.io"
+vulnerability.ignore = true
+reason = "dioxus-desktop GTK chain only; not used in server/web builds"
+
+[[PackageOverrides]]
+name = "gdk"
+ecosystem = "crates.io"
+vulnerability.ignore = true
+reason = "dioxus-desktop GTK chain only; not used in server/web builds"
+
+[[PackageOverrides]]
+name = "gdk-sys"
+ecosystem = "crates.io"
+vulnerability.ignore = true
+reason = "dioxus-desktop GTK chain only; not used in server/web builds"
+
+[[PackageOverrides]]
+name = "gdkwayland-sys"
+ecosystem = "crates.io"
+vulnerability.ignore = true
+reason = "dioxus-desktop GTK chain only; not used in server/web builds"
+
+[[PackageOverrides]]
+name = "gdkx11-sys"
+ecosystem = "crates.io"
+vulnerability.ignore = true
+reason = "dioxus-desktop GTK chain only; not used in server/web builds"
+
+[[PackageOverrides]]
+name = "glib"
+ecosystem = "crates.io"
+vulnerability.ignore = true
+reason = "dioxus-desktop GTK chain only; not used in server/web builds"
+
+[[PackageOverrides]]
+name = "gtk"
+ecosystem = "crates.io"
+vulnerability.ignore = true
+reason = "dioxus-desktop GTK chain only; not used in server/web builds"
+
+[[PackageOverrides]]
+name = "gtk-sys"
+ecosystem = "crates.io"
+vulnerability.ignore = true
+reason = "dioxus-desktop GTK chain only; not used in server/web builds"
+
+[[PackageOverrides]]
+name = "gtk3-macros"
+ecosystem = "crates.io"
+vulnerability.ignore = true
+reason = "dioxus-desktop GTK chain only; not used in server/web builds"
+
+# Build-time proc macros — not deployed at runtime.
+[[PackageOverrides]]
+name = "paste"
+ecosystem = "crates.io"
+vulnerability.ignore = true
+reason = "compile-time proc macro only; not deployed at runtime"
+
+[[PackageOverrides]]
+name = "proc-macro-error"
+ecosystem = "crates.io"
+vulnerability.ignore = true
+reason = "compile-time proc macro only; not deployed at runtime"
+
+# fxhash is in the lockfile but not in any active dependency tree.
+[[PackageOverrides]]
+name = "fxhash"
+ecosystem = "crates.io"
+vulnerability.ignore = true
+reason = "stale lock entry; not in any active dependency tree"
+
+# rand 0.7.3 is a stale lock entry; not in any active dependency tree.
+[[PackageOverrides]]
+name = "rand"
+version = "0.7.3"
+ecosystem = "crates.io"
+vulnerability.ignore = true
+reason = "stale lock entry; not in any active dependency tree"
