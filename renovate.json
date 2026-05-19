@@ -35,36 +35,28 @@
       "enabled": false
     },
     {
-      "managers": [
-        "nix"
+      "description": "Run Nix lock file maintenance weekly",
+      "matchUpdateTypes": [
+        "lockFileMaintenance"
       ],
-      "lockFileMaintenance": true,
-      "enabled": true,
+      "matchFileNames": [
+        "**/flake.nix"
+      ],
       "schedule": [
-        "every weekend"
-      ]
+        "before 4am on monday"
+      ],
+      "groupName": "nix lock file maintenance",
+      "commitMessageTopic": "nix lock file"
     }
   ],
   /*
-   * Rust-specific sanity defaults
-   */
-  "rust": {
-    /*
-     * This is the big one.
-     * Prevents Renovate from forcing single-version upgrades
-     * of transitive crates like getrandom.
-     */
-    "rangeStrategy": "auto"
-  },
-  /*
-   * Let Cargo manage transitive dependencies via Cargo.lock
+   * Update all lock files
    */
   "lockFileMaintenance": {
     "enabled": true,
     "schedule": [
-      "every weekend"
-    ],
-    "commitMessageAction": "Refresh"
+      "before 4am on the first day of the month"
+    ]
   },
   /*
    * Avoid churn
@@ -74,5 +66,8 @@
   /*
    * Make failures obvious instead of retrying forever
    */
-  "rebaseWhen": "conflicted"
+  "rebaseWhen": "conflicted",
+  "gitIgnoredAuthors": [
+    "renovate[bot]@users.noreply.github.com"
+  ]
 }
