@@ -3,36 +3,16 @@
   "extends": [
     "config:recommended"
   ],
+  "timezone": "Australia/Melbourne",
   "nix": {
     "enabled": true
   },
   "packageRules": [
     {
       "matchSourceUrls": [
-        "https://github.com/open-telemetry/opentelemetry-rust",
-        "https://github.com/tokio-rs/tracing-opentelemetry",
-        "https://github.com/hyperium/tonic"
-      ],
-      "groupName": "opentelemetry-rust monorepo"
-    },
-    {
-      "matchSourceUrls": [
         "https://github.com/maxcountryman/tower-sessions"
       ],
       "groupName": "tower-sessions monorepo"
-    },
-    {
-      /*
-       * Don’t open PRs trying to bump transitive crates
-       * unless they are security updates.
-       */
-      "matchManagers": [
-        "cargo"
-      ],
-      "matchDepTypes": [
-        "indirect"
-      ],
-      "enabled": false
     },
     {
       "description": "Run Nix lock file maintenance weekly",
