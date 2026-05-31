@@ -2,7 +2,7 @@
   description = "Phone Database";
 
   inputs.flake-utils.url = "github:numtide/flake-utils";
-  inputs.nixpkgs.url = "github:NixOS/nixpkgs/nixos-25.11";
+  inputs.nixpkgs.url = "github:NixOS/nixpkgs/nixos-26.05";
   inputs.nixpkgs-unstable.url = "github:NixOS/nixpkgs/nixos-unstable";
   inputs.rust-overlay.url = "github:oxalica/rust-overlay";
   inputs.devenv.url = "github:cachix/devenv";
@@ -47,7 +47,7 @@
           extensions = [ "rust-src" ];
         };
 
-        nodejs = pkgs.nodejs_20;
+        nodejs = pkgs.nodejs;
 
         build_env = {
           BUILD_DATE = with flockenzeit.lib.splitSecondsSinceEpoch { } self.lastModified; "${F}T${T}${Z}";
@@ -328,7 +328,7 @@
               packages = [
                 rustPlatform
                 pkgs-unstable.rust-analyzer
-                pkgs-unstable.osv-scanner
+                pkgs.osv-scanner
                 wasm-bindgen-cli
                 pkgs.binaryen
                 nodejs
