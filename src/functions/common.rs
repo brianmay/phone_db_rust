@@ -67,7 +67,8 @@ pub async fn get_ldap_connection() -> Result<(LdapConnection, String), ServerFnE
 pub async fn get_user_id() -> Result<UserId, ServerFnError> {
     let session: Session = FullstackContext::extract().await?;
     session
-        .user
+        .user()
+        .await
         .as_ref()
         .map(|x| UserId::new(x.id))
         .ok_or(ServerFnError::new("Not Logged In".to_string()))
@@ -75,9 +76,8 @@ pub async fn get_user_id() -> Result<UserId, ServerFnError> {
 
 pub async fn assert_is_admin() -> Result<(), ServerFnError> {
     let session: Session = FullstackContext::extract().await?;
-    let user = session
-        .user
-        .as_ref()
+    let user_opt = session.user().await;
+    let user = user_opt.as_ref()
         .ok_or(ServerFnError::new("Not Logged In".to_string()))?;
     user.is_admin
         .then_some(())
