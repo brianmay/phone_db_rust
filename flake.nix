@@ -89,6 +89,7 @@
               postgres
               pkgs.binaryen
               pkgs.pkg-config
+              pkgs.esbuild
             ];
             buildPhase = ''
               export VCS_REF="${build_env.VCS_REF}"
@@ -344,6 +345,7 @@
                 postgres
                 tailwindcss
                 pkgs.watchman
+                pkgs.esbuild
 
                 pd_ldapsearch
                 test_phone_call
