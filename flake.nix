@@ -108,7 +108,7 @@
             cargoLock.outputHashes = {
               "axum-login-0.18.0" = "sha256-CxxVN0uEicYW+mgyqWWw6sn+jXe64xkJZLbFWaXUeKM=";
             };
-            meta.mainProgram = "phone_db";
+            meta.mainProgram = "server";
           };
 
         test_module = pkgs.testers.nixosTest {
