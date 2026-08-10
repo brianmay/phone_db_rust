@@ -56,19 +56,18 @@
         postgres = pkgs.postgresql_15;
         tailwindcss = pkgs.tailwindcss_4;
 
-        nodePackages = pkgs.buildNpmPackage {
-          name = "node-packages";
-          src = ./.;
-          npmDepsHash = "sha256-JpQAYt6oaTrmLwCmCtUEl+qRBFejC4TSZRFeq8XMlu0=";
-          dontNpmBuild = true;
+        nodePackages = pkgs.importNpmLock.buildNodeModules {
           inherit nodejs;
-
-          installPhase = ''
-            mkdir $out
-            cp -r node_modules $out
-            ln -s $out/node_modules/.bin $out/bin
-          '';
+          npmRoot = ./.;
         };
+
+        # Expose the npm CLI tools (tailwindcss etc.) on PATH, like buildNpmPackage's $out/bin used to.
+        nodePackagesCli = pkgs.runCommand "node-packages-cli" {
+          nativeBuildInputs = [ nodePackages ];
+        } ''
+          mkdir -p $out/bin
+          ln -s ${nodePackages}/node_modules/.bin/* $out/bin/
+        '';
 
         combined =
           let
@@ -335,7 +334,7 @@
                 pkgs.sqlx-cli
                 # pkgs.jq
                 pkgs.openssl
-                pkgs.prefetch-npm-deps
+                nodePackagesCli
                 dioxus-cli
                 # pkgs.b3sum
                 pkgs.diesel-cli
