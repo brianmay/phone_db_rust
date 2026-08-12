@@ -93,3 +93,14 @@ name = "proc-macro-error2"
 ecosystem = "crates.io"
 ignore = true
 reason = "Compile-time proc macro only — no runtime impact (transitive via validator_derive → openid)"
+
+# lru is a transitive dep of dioxus-server 0.7.10 (pinned at ^0.16).
+# RUSTSEC-2026-0253 is fixed in lru 0.18.2 which is semver-incompatible with
+# what dioxus-server 0.7.10 requires; no stable dioxus release has adopted
+# lru ^0.18 yet. Revisit once dioxus upgrades its lru dependency.
+[[PackageOverrides]]
+name = "lru"
+version = "0.16.4"
+ecosystem = "crates.io"
+vulnerability.ignore = true
+reason = "Pinned at ^0.16 by dioxus-server 0.7.10; RUSTSEC-2026-0253 fix (lru 0.18.2) requires a semver-incompatible upgrade that must come from upstream dioxus"
