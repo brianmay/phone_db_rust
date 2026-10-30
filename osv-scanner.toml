@@ -104,3 +104,12 @@ version = "0.16.4"
 ecosystem = "crates.io"
 vulnerability.ignore = true
 reason = "Pinned at ^0.16 by dioxus-server 0.7.10; RUSTSEC-2026-0253 fix (lru 0.18.2) requires a semver-incompatible upgrade that must come from upstream dioxus"
+
+# GHSA-qwgh-2vcv-g2f7 affects block-buffer 0.10.4 (via digest 0.10 / RustCrypto
+# hashes) and has no fixed version available yet. Revisit once a patch is released.
+[[PackageOverrides]]
+name = "block-buffer"
+version = "0.10.4"
+ecosystem = "crates.io"
+vulnerability.ignore = true
+reason = "GHSA-qwgh-2vcv-g2f7 (medium) has no fixed version available; revisit when a patched release exists"
