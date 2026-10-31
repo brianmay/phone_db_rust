@@ -4683,7 +4683,7 @@ dependencies = [
  "axum",
  "axum-extra 0.12.6",
  "axum-login",
- "base64 0.22.1",
+ "base64 0.23.1",
  "bb8",
  "chrono",
  "classes",
