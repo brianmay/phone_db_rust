@@ -26,7 +26,7 @@ pub enum Error {
     Decode(serde_json::Error),
 
     #[error("Error parsing session expiry date: {0}")]
-    DecodeSlice(#[from] base64::DecodeSliceError),
+    DecodeSlice(String),
 }
 
 impl From<Error> for session_store::Error {
@@ -175,7 +175,10 @@ impl SessionStore for PostgresStore {
             .map_err(Error::Database)?
             .map_or(Ok(None), |session| {
                 Record {
-                    id: session.id.parse().map_err(Error::DecodeSlice)?,
+                    id: session
+                        .id
+                        .parse::<Id>()
+                        .map_err(|err| Error::DecodeSlice(err.to_string()))?,
                     data: serde_json::from_value(session.data).map_err(Error::Decode)?,
                     expiry_date: chono_to_time(session.expiry_date),
                 }
