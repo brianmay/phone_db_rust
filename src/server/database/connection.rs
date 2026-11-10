@@ -37,9 +37,6 @@ pub enum Error {
 
     #[error(transparent)]
     Decode(serde_json::Error),
-
-    #[error(transparent)]
-    DecodeSlice(#[from] base64::DecodeSliceError),
 }
 
 async fn run_migrations<A>(async_connection: A) -> Result<(), Box<dyn std::error::Error>>
