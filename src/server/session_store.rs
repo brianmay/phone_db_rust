@@ -25,7 +25,7 @@ pub enum Error {
     #[error("Error decoding session data: {0}")]
     Decode(serde_json::Error),
 
-    #[error("Error parsing session expiry date: {0}")]
+    #[error("Error parsing session ID: {0}")]
     DecodeSlice(String),
 }
 
