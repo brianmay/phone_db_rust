@@ -77,8 +77,7 @@ pub async fn get_user_id() -> Result<UserId, ServerFnError> {
 pub async fn assert_is_admin() -> Result<(), ServerFnError> {
     let session: Session = FullstackContext::extract().await?;
     let user_opt = session.user().await;
-    let user = user_opt
-        .as_ref()
+    let user = user_opt.as_ref()
         .ok_or(ServerFnError::new("Not Logged In".to_string()))?;
     user.is_admin
         .then_some(())
