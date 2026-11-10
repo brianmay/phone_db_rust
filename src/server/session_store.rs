@@ -26,7 +26,7 @@ pub enum Error {
     Decode(serde_json::Error),
 
     #[error("Error parsing session ID: {0}")]
-    DecodeSlice(String),
+    DecodeSlice(<Id as std::str::FromStr>::Err),
 }
 
 impl From<Error> for session_store::Error {
@@ -175,10 +175,7 @@ impl SessionStore for PostgresStore {
             .map_err(Error::Database)?
             .map_or(Ok(None), |session| {
                 Record {
-                    id: session
-                        .id
-                        .parse::<Id>()
-                        .map_err(|err| Error::DecodeSlice(err.to_string()))?,
+                    id: session.id.parse().map_err(Error::DecodeSlice)?,
                     data: serde_json::from_value(session.data).map_err(Error::Decode)?,
                     expiry_date: chono_to_time(session.expiry_date),
                 }
@@ -207,6 +204,24 @@ mod tests {
     use super::*;
     use chrono::{Datelike, TimeZone, Timelike};
     use time::{Month, macros::datetime};
+
+    #[test]
+    fn test_session_id_parsing() {
+        let id = Id::default();
+        assert_eq!(
+            id.to_string()
+                .parse::<Id>()
+                .map_err(Error::DecodeSlice)
+                .unwrap(),
+            id
+        );
+        assert!(
+            "invalid!"
+                .parse::<Id>()
+                .map_err(Error::DecodeSlice)
+                .is_err()
+        );
+    }
 
     #[test]
     fn test_time_to_chrono() {
