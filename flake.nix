@@ -104,7 +104,7 @@
             '';
             cargoLock.lockFile = ./Cargo.lock;
             cargoLock.outputHashes = {
-              "axum-login-0.18.0" = "sha256-u8XdfQGZK5tS2d71ws5y+HmGGDB0Er8XJltzp5yggl0=";
+              "axum-login-0.18.0" = "sha256-OJg4y9SZU24u/ViF2Jfy6ucoYS1ay6pbBvGg+PWY2ZM=";
             };
             meta.mainProgram = "server";
           };
