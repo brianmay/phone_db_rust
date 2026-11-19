@@ -113,3 +113,7 @@ version = "0.10.4"
 ecosystem = "crates.io"
 vulnerability.ignore = true
 reason = "GHSA-qwgh-2vcv-g2f7 (medium) has no fixed version available; revisit when a patched release exists"
+
+[[IgnoredVulns]]
+id = "RUSTSEC-2026-0543"
+reason = "Informational unmaintained advisory; no patched chrono release is available"
